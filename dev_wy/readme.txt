@@ -1,4 +1,4 @@
-用于开发。向master的提交位于merge_wy
+已开发的代码，供参考
 
 train_val_2     训练程序。另外包含了dev_wy项目的进展和计划
 val_test_1      测试程序
