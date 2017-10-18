@@ -8,15 +8,16 @@ import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import time
 import shutil
+import os
 
 
 arch = 'preact_resnet50'
 evaluate = False
+checkpoint_filename = arch
+try_resume = True
 print_freq = 10
-if torch.cuda.is_available():
-    use_gpu = True
-else:
-    use_gpu = False
+start_epoch = 0
+use_gpu = torch.cuda.is_available()
 
 # training parameters:
 BATCH_SIZE = 128
@@ -28,6 +29,10 @@ eps=1e-08
 weight_decay=0
 
 
+latest_check = 'checkpoint/' + checkpoint_filename + '_latest.pth.tar'
+best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar'
+
+
 def run():
     model = load_model(arch, use_gpu=use_gpu)
 
@@ -37,6 +42,20 @@ def run():
             model.cuda()
         else:
             model = nn.DataParallel(model).cuda()
+
+        best_prec1 = 0
+
+    if try_resume:
+        if os.path.isfile(latest_check):
+            print("=> loading checkpoint '{}'".format(latest_check))
+            checkpoint = torch.load(latest_check)
+            start_epoch = checkpoint['epoch']
+            best_prec1 = checkpoint['best_prec1']
+            model.load_state_dict(checkpoint['state_dict'])
+            print("=> loaded checkpoint '{}' (epoch {})"
+                  .format(latest_check, checkpoint['epoch']))
+        else:
+            print("=> no checkpoint found at '{}'".format(latest_check))
 
     cudnn.benchmark = True
 
@@ -71,9 +90,8 @@ def run():
         validate(val_loader, model, criterion)
 
     else:
-        best_prec1 = 0
 
-        for epoch in range(epochs):
+        for epoch in range(start_epoch, epochs):
             adjust_learning_rate(optimizer, epoch)
 
             # train for one epoch
@@ -90,7 +108,7 @@ def run():
                 'arch': arch,
                 'state_dict': model.state_dict(),
                 'best_prec1': best_prec1,
-            }, is_best, arch.lower())
+            }, is_best)
 
 
 def _each_epoch(mode, loader, model, criterion, optimizer=None, epoch=None):
@@ -159,11 +177,10 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
 
 def adjust_learning_rate(optimizer, epoch):
-    global lr
-    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = lr * (0.1 ** (epoch // 30))
+    """Sets the learning rate to the initial LR decayed by 5 every 10 epochs"""
+    lr_new = lr * (0.2 ** (epoch // 10))
     for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
+        param_group['lr'] = lr_new
 
 
 class AverageMeter(object):
@@ -200,10 +217,10 @@ def accuracy(output, target, topk=(1,)):
     return res
 
 
-def save_checkpoint(state, is_best, filename='checkpoint/checkpoint'):
-    torch.save(state, filename + '_latest.pth.tar')
+def save_checkpoint(state, is_best):
+    torch.save(state, latest_check)
     if is_best:
-        shutil.copyfile(filename + '_latest.pth.tar', filename + '_best.pth.tar')
+        shutil.copyfile(latest_check, best_check)
 
 
 if __name__ == '__main__':
