@@ -8,3 +8,5 @@ test_balence    查看各类别训练样本的数量
 test_balanced_sampler   一个考虑类别平衡的dataloader
 
 test_transforms_general      测试torchsample提供的transforms
+
+generate_json           为测试数据生成json，以统一数据的读取接口。结果是scene_test_annotations.json

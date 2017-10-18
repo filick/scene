@@ -1,0 +1,1 @@
+注意places 365 torch版本的resnet50其实是Preact_resnet50。这里只需要把原来的.t7文件改个名字，然后convert_torch就得到了
