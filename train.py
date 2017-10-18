@@ -11,7 +11,7 @@ import shutil
 import os
 
 
-arch = 'preact_resnet50'
+arch = 'Imag_Inception_v3'
 evaluate = False
 checkpoint_filename = arch
 try_resume = True
