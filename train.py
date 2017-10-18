@@ -35,7 +35,15 @@ best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar'
 
 def run():
     model = load_model(arch, use_gpu=use_gpu)
-    best_prec1 = 0
+
+    if use_gpu:
+        if arch.lower().startswith('alexnet') or arch.lower().startswith('vgg'):
+            model.features = nn.DataParallel(model.features)
+            model.cuda()
+        else:
+            model = nn.DataParallel(model).cuda()
+
+        best_prec1 = 0
 
     if try_resume:
         if os.path.isfile(latest_check):
@@ -48,13 +56,6 @@ def run():
                   .format(latest_check, checkpoint['epoch']))
         else:
             print("=> no checkpoint found at '{}'".format(latest_check))
-
-    if use_gpu:
-        if arch.lower().startswith('alexnet') or arch.lower().startswith('vgg'):
-            model.features = nn.DataParallel(model.features)
-            model.cuda()
-        else:
-            model = nn.DataParallel(model).cuda()
 
     cudnn.benchmark = True
 
