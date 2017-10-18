@@ -26,7 +26,7 @@ def load_model(name, use_gpu=True, num_classes=80):
     if name.startswith('resnet'):
         model.fc = nn.Linear(model.fc.in_features, num_classes)
     elif name == 'alexnet':
-        raise RuntimeError('The adaption of the pretrained AlexNet to the current task has not been implemented.')
+        raise RuntimeError('The adaptation of the pretrained AlexNet to the current task has not been implemented.')
     elif name.startswith('densenet'):
         model.classifier = nn.Linear(model.classifier.in_features, num_classes)
 
