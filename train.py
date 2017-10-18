@@ -11,7 +11,7 @@ import shutil
 import os
 
 
-arch = 'resnet50'
+arch = 'preact_resnet50'
 evaluate = False
 checkpoint_filename = arch
 try_resume = True
@@ -49,6 +49,7 @@ def run():
         if os.path.isfile(latest_check):
             print("=> loading checkpoint '{}'".format(latest_check))
             checkpoint = torch.load(latest_check)
+            global start_epoch 
             start_epoch = checkpoint['epoch']
             best_prec1 = checkpoint['best_prec1']
             model.load_state_dict(checkpoint['state_dict'])
