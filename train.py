@@ -10,7 +10,7 @@ import time
 import shutil
 
 
-arch = 'resnet50'
+arch = 'preact_resnet50'
 evaluate = False
 print_freq = 10
 if torch.cuda.is_available():
