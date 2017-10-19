@@ -12,8 +12,8 @@ import os
 from utils import ClassAwareSampler
 
 
-arch = 'inception_v3'
-pretrained = 'imagenet'
+arch = 'resnet18'
+pretrained = 'places'
 evaluate = False
 checkpoint_filename = arch + '_' + pretrained
 try_resume = True

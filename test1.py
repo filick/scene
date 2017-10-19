@@ -4,24 +4,21 @@ import torch.nn as nn
 from torch.autograd import Variable
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
-import torchvision
 from torchvision import transforms
 import time
 import json
-from model.places365_cnn import load_model
+from model import load_model
 
 
 
 arch = 'resnet18'
+pretrained = 'places'
 phases = ['test', 'val']
 use_gpu = torch.cuda.is_available()
 batch_size = 64
 INPUT_WORKERS = 8
-model_conv = load_model(arch, use_gpu=use_gpu)
-for param in model_conv.parameters():
-    param.requires_grad = False #节省显存
-model_weight = 'checkpoint/'+'%s_best.pth' % arch #.tar
-
+checkpoint_filename = arch + '_' + pretrained
+best_check = 'checkpoint/' + checkpoint_filename + '_best.pth'
 
 data_transforms = {
     'test': transforms.Compose([
@@ -40,12 +37,14 @@ data_transforms = {
 
 
 
-
-
+model_conv = load_model(arch, pretrained, use_gpu=use_gpu)
+for param in model_conv.parameters():
+    param.requires_grad = False #节省显存
+    
 if use_gpu:
-    model_conv.load_state_dict(torch.load(model_weight)) 
+    model_conv.load_state_dict(torch.load(best_check)) 
 else:
-    model_conv.load_state_dict(torch.load(model_weight)) # = torch.load(model_weight, map_location=lambda storage, loc: storage) # model trained in GPU could be deployed in CPU machine like this!
+    model_conv.load_state_dict(torch.load(best_check)) # = torch.load(model_weight, map_location=lambda storage, loc: storage) # model trained in GPU could be deployed in CPU machine like this!
 
 
 
@@ -207,7 +206,7 @@ def test_model (model, criterion):
             phase, epoch_loss, epoch_acc))
         print(' * Prec@1 {top1.avg:.6f} Prec@3 {top3.avg:.6f}'.format(top1=top1, top3=top3))
         
-        with open(('submit/%s_submit1_%s.json'%(arch, phase)), 'w') as f:
+        with open(('submit/%s_submit1_%s.json'%(checkpoint_filename, phase)), 'w') as f:
             json.dump(results, f)
 
     return 0

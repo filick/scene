@@ -20,12 +20,12 @@ model_file_root = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'pl
 
 
 def load_model(arch, pretrained, use_gpu=True, num_classes=80):
-    if not arch in support_models['pretrained']:
-        raise ValueError("No such places365-pretrained model found")
+    if (not arch in support_models['places']) & (not arch in support_models['imagenet']):
+        raise ValueError("No such places365 or imagenet pretrained model found")
 
     if pretrained == 'imagenet':
         model = torchvision.models.__dict__[arch](pretrained=True)
-    elif pretrained == 'places365':
+    elif pretrained == 'places':
         if arch == 'preact_resnet50':
             model = Preact_resnet50_places365
             model.load_state_dict(torch.load(os.path.join(model_file_root, 'Preact_resnet50_places365.pth')))
