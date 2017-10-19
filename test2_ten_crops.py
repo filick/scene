@@ -18,7 +18,7 @@ use_gpu = torch.cuda.is_available()
 batch_size = 64
 INPUT_WORKERS = 8
 checkpoint_filename = arch + '_' + pretrained
-best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar' #tar
+best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar' #.tar
 
 
 
@@ -71,11 +71,11 @@ class SceneDataset(Dataset):
 
 transformed_dataset_test = SceneDataset(json_labels=label_raw_test,
                                     root_dir='data/test/scene_test_a_images_20170922',
-                                           transform=data_transforms('test')
+                                           transform=data_transforms('ten_crop')
                                            )      
 transformed_dataset_val = SceneDataset(json_labels=label_raw_val,
                                     root_dir='data/validation/scene_validation_images_20170908',
-                                           transform=data_transforms('validation')
+                                           transform=data_transforms('ten_crop')
                                            )         
 dataloader = {'test':DataLoader(transformed_dataset_test, batch_size=batch_size,shuffle=False, num_workers=INPUT_WORKERS),
              'val':DataLoader(transformed_dataset_val, batch_size=batch_size,shuffle=False, num_workers=INPUT_WORKERS)
@@ -168,8 +168,11 @@ def test_model (model, criterion):
             else:
                 inputs, labels = Variable(inputs), Variable(labels)
 
-            # forward
-            outputs = model(inputs)
+#            outputs = model(inputs)
+            # input is a 5d tensor
+            bs, ncrops, c, h, w = inputs.size()
+            crops_output = model(inputs.view(-1, c, h, w)) # fuse batch size and ncrops
+            outputs = crops_output.view(bs, ncrops, -1).mean(1) # avg over crop
             _, preds = torch.max(outputs.data, 1)
             loss = criterion(outputs, labels)
 
@@ -192,7 +195,7 @@ def test_model (model, criterion):
             phase, epoch_loss, epoch_acc))
         print(' * Prec@1 {top1.avg:.6f} Prec@3 {top3.avg:.6f}'.format(top1=top1, top3=top3))
         
-        with open(('submit/%s_submit1_%s.json'%(checkpoint_filename, phase)), 'w') as f:
+        with open(('submit/%s_submit2_%s.json'%(checkpoint_filename, phase)), 'w') as f:
             json.dump(results, f)
 
     return 0
