@@ -1,5 +1,5 @@
 import data
-from model.places365_cnn import load_model
+from model import load_model
 import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
@@ -12,9 +12,10 @@ import os
 from utils import ClassAwareSampler
 
 
-arch = 'alexnet'
+arch = 'inception_v3'
+pretrained = 'imagenet'
 evaluate = False
-checkpoint_filename = arch
+checkpoint_filename = arch + '_' + pretrained
 try_resume = True
 print_freq = 10
 start_epoch = 0
@@ -36,7 +37,7 @@ best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar'
 
 
 def run():
-    model = load_model(arch, use_gpu=use_gpu)
+    model = load_model(arch, pretrained, use_gpu=use_gpu)
 
     if use_gpu:
         if arch.lower().startswith('alexnet') or arch.lower().startswith('vgg'):
