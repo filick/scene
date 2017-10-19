@@ -18,7 +18,7 @@ use_gpu = torch.cuda.is_available()
 batch_size = 64
 INPUT_WORKERS = 8
 checkpoint_filename = arch + '_' + pretrained
-best_check = 'checkpoint/' + checkpoint_filename + '_best.pth'
+best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar'
 
 data_transforms = {
     'test': transforms.Compose([
