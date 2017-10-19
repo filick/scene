@@ -9,15 +9,17 @@ import torch.optim as optim
 import time
 import shutil
 import os
+from utils import ClassAwareSampler
 
 
-arch = 'Imag_Inception_v3'
+arch = 'alexnet'
 evaluate = False
 checkpoint_filename = arch
 try_resume = True
 print_freq = 10
 start_epoch = 0
 use_gpu = torch.cuda.is_available()
+class_aware = True
 
 # training parameters:
 BATCH_SIZE = 128
@@ -62,16 +64,28 @@ def run():
 
 
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    train_loader = torch.utils.data.DataLoader(
-            data.ChallengerSceneFolder(data.TRAIN_ROOT, transforms.Compose([
-                transforms.RandomSizedCrop(224),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                normalize
-            ])),
-            batch_size=BATCH_SIZE, shuffle=True,
-            num_workers=INPUT_WORKERS, pin_memory=use_gpu)
-
+    if class_aware:
+        train_set = data.ChallengerSceneFolder(data.TRAIN_ROOT, transforms.Compose([
+                    transforms.RandomSizedCrop(224),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    normalize
+                ]))
+        train_loader = torch.utils.data.DataLoader(
+                train_set,
+                batch_size=BATCH_SIZE, shuffle=False,
+                sampler=ClassAwareSampler.ClassAwareSampler(train_set),
+                num_workers=INPUT_WORKERS, pin_memory=use_gpu)
+    else:
+        train_loader = torch.utils.data.DataLoader(
+        data.ChallengerSceneFolder(data.TRAIN_ROOT, transforms.Compose([
+            transforms.RandomSizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            normalize
+        ])),
+        batch_size=BATCH_SIZE, shuffle=True,
+        num_workers=INPUT_WORKERS, pin_memory=use_gpu)
     val_loader = torch.utils.data.DataLoader(
             data.ChallengerSceneFolder(data.VALIDATION_ROOT, transforms.Compose([
                 transforms.Scale(256),
