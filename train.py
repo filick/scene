@@ -1,7 +1,6 @@
 import data
 from model import load_model
 import torch.utils.data
-import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
@@ -10,13 +9,14 @@ import time
 import shutil
 import os
 from utils import ClassAwareSampler
+from config import data_transforms
 
 
 arch = 'resnet18'
 pretrained = 'places'
 evaluate = False
 checkpoint_filename = arch + '_' + pretrained
-try_resume = True
+try_resume = False
 print_freq = 10
 start_epoch = 0
 use_gpu = torch.cuda.is_available()
@@ -64,14 +64,8 @@ def run():
     cudnn.benchmark = True
 
 
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     if class_aware:
-        train_set = data.ChallengerSceneFolder(data.TRAIN_ROOT, transforms.Compose([
-                    transforms.RandomSizedCrop(224),
-                    transforms.RandomHorizontalFlip(),
-                    transforms.ToTensor(),
-                    normalize
-                ]))
+        train_set = data.ChallengerSceneFolder(data.TRAIN_ROOT, data_transforms('train'))
         train_loader = torch.utils.data.DataLoader(
                 train_set,
                 batch_size=BATCH_SIZE, shuffle=False,
@@ -79,21 +73,12 @@ def run():
                 num_workers=INPUT_WORKERS, pin_memory=use_gpu)
     else:
         train_loader = torch.utils.data.DataLoader(
-        data.ChallengerSceneFolder(data.TRAIN_ROOT, transforms.Compose([
-            transforms.RandomSizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            normalize
-        ])),
-        batch_size=BATCH_SIZE, shuffle=True,
-        num_workers=INPUT_WORKERS, pin_memory=use_gpu)
+                data.ChallengerSceneFolder(data.TRAIN_ROOT, data_transforms('train')),
+                batch_size=BATCH_SIZE, shuffle=True,
+                num_workers=INPUT_WORKERS, pin_memory=use_gpu)
+        
     val_loader = torch.utils.data.DataLoader(
-            data.ChallengerSceneFolder(data.VALIDATION_ROOT, transforms.Compose([
-                transforms.Scale(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                normalize,
-            ])),
+            data.ChallengerSceneFolder(data.VALIDATION_ROOT, data_transforms('validation')),
             batch_size=BATCH_SIZE, shuffle=False,
             num_workers=INPUT_WORKERS, pin_memory=use_gpu)
 

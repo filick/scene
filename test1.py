@@ -8,6 +8,7 @@ from torchvision import transforms
 import time
 import json
 from model import load_model
+from config import data_transforms
 
 
 
@@ -18,22 +19,8 @@ use_gpu = torch.cuda.is_available()
 batch_size = 64
 INPUT_WORKERS = 8
 checkpoint_filename = arch + '_' + pretrained
-best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar'
+best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar' #tar
 
-data_transforms = {
-    'test': transforms.Compose([
-        transforms.Scale(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    'val': transforms.Compose([
-        transforms.Scale(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-}
 
 
 
@@ -85,11 +72,11 @@ class SceneDataset(Dataset):
 
 transformed_dataset_test = SceneDataset(json_labels=label_raw_test,
                                     root_dir='data/test/scene_test_a_images_20170922',
-                                           transform=data_transforms['test']
+                                           transform=data_transforms('test')
                                            )      
 transformed_dataset_val = SceneDataset(json_labels=label_raw_val,
                                     root_dir='data/validation/scene_validation_images_20170908',
-                                           transform=data_transforms['val']
+                                           transform=data_transforms('validation')
                                            )         
 dataloader = {'test':DataLoader(transformed_dataset_test, batch_size=batch_size,shuffle=False, num_workers=INPUT_WORKERS),
              'val':DataLoader(transformed_dataset_val, batch_size=batch_size,shuffle=False, num_workers=INPUT_WORKERS)
