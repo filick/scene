@@ -94,3 +94,4 @@ class ChallengerSceneFolder(td.ImageFolder):
         self.transform = transform
         self.target_transform = target_transform
         self.loader = loader
+        self.classes = range(80)
