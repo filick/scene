@@ -10,3 +10,6 @@ json marked by submit2
 test3_* (average after softmax, more common)
 json marked by submit3
 0.5728932584269663
+
+test4_fcn (following resnet paper, fcn-style testing, except for a center_crop after Resize)
+json marked by submit4
