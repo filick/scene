@@ -8,6 +8,7 @@ import time
 import json
 from model import load_model
 from config import data_transforms
+import pickle
 
 
 
@@ -135,6 +136,7 @@ def batch_to_list_of_dicts(indices, image_ids):  #indices2 是预测的labels
         dict_ = {}
     return result
 
+my_aug_softmax2 = {}
 def test_model (model, criterion):
     since = time.time()
 
@@ -149,6 +151,7 @@ def test_model (model, criterion):
         top1 = AverageMeter()
         top3 = AverageMeter()
         results = []
+        aug_softmax = {}
 
         # Iterate over data.
         for data in dataloader[phase]:
@@ -173,6 +176,11 @@ def test_model (model, criterion):
             bs, ncrops, c, h, w = inputs.size()
             crops_output = model(inputs.view(-1, c, h, w)) # fuse batch size and ncrops
             outputs = crops_output.view(bs, ncrops, -1).mean(1) # avg over crop
+            crop_softmax = nn.functional.softmax(outputs)
+            temp = crop_softmax.cpu().data.numpy()
+            for item in range(len(img_name_raw)):
+                aug_softmax[img_name_raw[item]] = temp[item,:] #防止多线程啥的改变了图片顺序，还是按照id保存比较保险
+                
             _, preds = torch.max(outputs.data, 1)
             loss = criterion(outputs, labels)
 
@@ -197,7 +205,9 @@ def test_model (model, criterion):
         
         with open(('submit/%s_submit2_%s.json'%(checkpoint_filename, phase)), 'w') as f:
             json.dump(results, f)
-
+            
+        with open(('submit/%s_softmax2_%s.txt'%(checkpoint_filename, phase)), 'wb') as handle:
+            pickle.dump(aug_softmax, handle)
     return 0
 
 

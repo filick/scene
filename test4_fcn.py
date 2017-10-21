@@ -4,11 +4,11 @@ import torch.nn as nn
 from torch.autograd import Variable
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
-import time
 import json
 from model import load_model
 from config import my_transform_multiscale_test
 import copy
+import pickle
 
 '''
 简单配置的参考结果:
@@ -143,9 +143,7 @@ def batch_to_list_of_dicts(indices, image_ids):  #indices2 是预测的labels
 
 my_aug_softmax = {}
 my_aug_softmax2 = {}
-
 def test_model (model, criterion, myid):
-    since = time.time()
 
     for phase in phases:
         
@@ -276,6 +274,10 @@ for phase in phases:
         image_id = item['image_id']
         for it in range(myid):
             final_softmax[image_id] += my_aug_softmax[str(it)][phase][image_id]
+        final_softmax[image_id] /= len(range(myid))    
+        
+    with open(('submit/%s_softmax4_%s.txt'%(checkpoint_filename, phase)), 'wb') as handle:
+        pickle.dump(final_softmax, handle)
     
     results = [] #[{"image_id":"a0563eadd9ef79fcc137e1c60be29f2f3c9a65ea.jpg","label_id": [5,18,32]}]
     dict_ = {}
