@@ -60,3 +60,31 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80):
         raise NotImplementedError('This pretrained model has not been adapted to the current tast yet.')
 
     return model
+
+
+
+'''
+关于resnet的AvgPool2d(7): https://github.com/pytorch/vision/pull/155。vgg等其他网络可能还需要一些别的变化
+there are two common use cases:
+- fully dense outputs (变成全卷积网络，参考vgg/resnet paper的test部分。还有Image Segmentation and Object Detection)
+     where we give bigger inputs and we get bigger outputs than 1000x1x1
+     
+- adaptively pooled outputs (使用大于224的输入训练网络时使用这个)
+    when we give bigger inputs and always get out 1000x4096 to be fed into fc layers
+        resnet = torchvision.models.resnet18()
+        -self.avgpool = nn.AvgPool2d(7)
+        +self.avgpool = nn.AdaptiveAvgPool2d(1)
+        
+        The one problem with this is that in some models the final pooling is done using the 
+        functional interface (e.g. densenet), but this can be easily remedied by creating members 
+        on the module for the feature pooling (and is backwards compatible)
+'''
+def load_model_fcn(arch, pretrained, use_gpu=True, num_classes=80):
+    if pretrained == 'places':
+        if arch == 'resnet18':
+            temp = 1
+        elif arch == 'resnet152':
+            temp = 1
+    else:
+        raise NotImplementedError('This model has not been adapted/verified for fully convolutional form.')
+    return model

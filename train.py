@@ -1,7 +1,6 @@
 import data
 from model import load_model
 import torch.utils.data
-import torchvision.datasets as datasets
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
