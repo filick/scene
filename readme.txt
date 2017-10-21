@@ -21,3 +21,4 @@ json marked by submit4
 test5_ensemble (integrate outputs from test1,test2,test 3,test4)
 json marked by submit5
 0.5544 + 0.5589 -> 0.5631
+注意：存了几个示例文件在submit下，如resnet18_places_softmax1_val.txt，比较大，添加到.gitignore了，应该不能直接pull下来
