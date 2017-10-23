@@ -1,5 +1,5 @@
 For testing, remember to alter the file name when finishing a run to keep the best results.
-Scores below is used to verify the code, only for reference.
+Scores below is used to verify the code, only for reference. Also note that, when we use TTA like ten_crops, fcn, spp layer or dense sliding window, maybe we should also change the way we eval in train.py to boost the finally testing accuracy.
 
 test1    
 resnet18_places_submit1_val.json
