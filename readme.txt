@@ -1,6 +1,6 @@
 For testing, remember to alter the file name when finishing a run to keep the best results.
-Scores below is used to verify the code, only for reference. 
-Also note that, when we use TTA like ten_crops, fcn, spp layer or dense sliding window (or their combinations), maybe we should also change the way we eval in train.py to boost the finally testing accuracy, when means the model needs to be slightly different when loaded in train and eval phase.
+Scores below are used to verify the code, only for reference. 
+Also note that, when we use TTA like ten_crops, fcn, spp layer or dense sliding window (or their combinations), maybe we should also change the way we eval in train.py to boost the finally testing accuracy, which means the model needs to be slightly different when loaded in train and eval phase. (may not be a must, but we need to think about how to collocate train, eval and test across (may be various) train.py and various test.py)
 
 test1    
 resnet18_places_submit1_val.json
