@@ -4,6 +4,7 @@ import torch
 from torchvision import transforms
 import random
 from PIL import Image
+from .transforms_master import ColorJitter
 
 input_size = 224 # currenttly fixed
 train_scale = 256 # currently not used in 'train'
@@ -47,7 +48,7 @@ composed_data_transforms = {
         transforms.Scale(random.randint(256, 512)),  # May be adjusted to be bigger
         transforms.RandomCrop(input_size),  # not RandomSizedCrop
         transforms.RandomHorizontalFlip(), 
-        transforms.ColorJitter(), # different from AlexNet's PCA method which is adopted in the ResNet paper?
+        ColorJitter(), # different from AlexNet's PCA method which is adopted in the ResNet paper?
         transforms.ToTensor(), 
         normalize
     ]),
