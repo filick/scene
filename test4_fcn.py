@@ -45,10 +45,15 @@ model_conv = load_model(arch, pretrained, use_gpu=use_gpu, AdaptiveAvgPool=True)
 for param in model_conv.parameters():
     param.requires_grad = False #节省显存
     
+best_checkpoint = torch.load(best_check)
 if use_gpu:
-    model_conv.load_state_dict(torch.load(best_check)) 
-else:
-    model_conv.load_state_dict(torch.load(best_check)) # = torch.load(model_weight, map_location=lambda storage, loc: storage) # model trained in GPU could be deployed in CPU machine like this!
+    if arch.lower().startswith('alexnet') or arch.lower().startswith('vgg'):
+        model_conv.features = nn.DataParallel(model_conv.features)
+        model_conv.cuda()
+        model_conv.load_state_dict(best_checkpoint['state_dict']) 
+    else:
+        model_conv = nn.DataParallel(model_conv).cuda()
+        model_conv.load_state_dict(best_checkpoint['state_dict']) 
 
 
 
@@ -208,14 +213,6 @@ def test_model (model, criterion, myid):
     return 0
 
 
-
-
-if use_gpu:
-    if arch.lower().startswith('alexnet') or arch.lower().startswith('vgg'):
-        model_conv.features = nn.DataParallel(model_conv.features)
-        model_conv.cuda()
-    else:
-        model_conv = nn.DataParallel(model_conv).cuda()
 
 criterion = nn.CrossEntropyLoss()
 
