@@ -22,9 +22,9 @@ for phase in phases:
               temp[phase] = pickle.loads(handle.read())
               my_aug_softmax[str(it)] = copy.deepcopy(temp)
 
-with open('data/test/scene_test_annotations.json', 'r') as f: #label文件, 测试的是我自己生成的
+with open('data/ai_challenger_scene_test_a_20170922/scene_test_annotations.json', 'r') as f: #label文件, 测试的是我自己生成的
     label_raw_test = json.load(f)
-with open('data/validation/scene_validation_annotations_20170908.json', 'r') as f: #label文件
+with open('data/ai_challenger_scene_validation_20170908/scene_validation_annotations_20170908.json', 'r') as f: #label文件
     label_raw_val = json.load(f)
 
 '''
