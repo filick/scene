@@ -57,9 +57,9 @@ if use_gpu:
 
 
 
-with open('data/test/scene_test_annotations.json', 'r') as f: #label文件, 测试的是我自己生成的
+with open('data/ai_challenger_scene_test_a_20170922/scene_test_annotations.json', 'r') as f: #label文件, 测试的是我自己生成的
     label_raw_test = json.load(f)
-with open('data/validation/scene_validation_annotations_20170908.json', 'r') as f: #label文件
+with open('data/ai_challenger_scene_validation_20170908/scene_validation_annotations_20170908.json', 'r') as f: #label文件
     label_raw_val = json.load(f)
 
 
@@ -229,11 +229,11 @@ for flip_flag in flip_flags:
         print('flip = %s' % flip_flag)
         print('varied scale = %d' % varied_scale)
         transformed_dataset_test = SceneDataset(json_labels=label_raw_test,
-                                            root_dir='data/test/scene_test_a_images_20170922',
+                                            root_dir='data/ai_challenger_scene_test_a_20170922/scene_test_a_images_20170922',
                                                    transform=my_transform_multiscale_test(varied_scale,flip_flag)
                                                    )      
         transformed_dataset_val = SceneDataset(json_labels=label_raw_val,
-                                            root_dir='data/validation/scene_validation_images_20170908',
+                                            root_dir='data/ai_challenger_scene_validation_20170908/scene_validation_images_20170908',
                                                    transform=my_transform_multiscale_test(varied_scale,flip_flag)
                                                    )         
         
