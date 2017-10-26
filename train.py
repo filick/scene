@@ -11,7 +11,7 @@ from utils import ClassAwareSampler
 from config import data_transforms
 
 
-arch = 'resnet18'
+arch = 'resnet152'
 pretrained = 'places'
 evaluate = False
 checkpoint_filename = arch + '_' + pretrained
@@ -20,15 +20,20 @@ print_freq = 10
 start_epoch = 0
 use_gpu = torch.cuda.is_available()
 class_aware = True
+AdaptiveAvgPool=True
+input_size = 384 #[224, 256, 384, 480, 640] 
+train_scale = 480
+test_scale = 480
 
 # training parameters:
-BATCH_SIZE = 128
+BATCH_SIZE = 32
 INPUT_WORKERS = 8
-epochs = 90
+epochs = 80
 lr = 0.0001
 betas=(0.9, 0.999)
 eps=1e-08
-weight_decay=0
+weight_decay=0.0001 #0.0001 #0.0001
+momentum = 0.9
 
 
 latest_check = 'checkpoint/' + checkpoint_filename + '_latest.pth.tar'
@@ -36,7 +41,7 @@ best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar'
 
 
 def run():
-    model = load_model(arch, pretrained, use_gpu=use_gpu)
+    model = load_model(arch, pretrained, use_gpu=use_gpu, AdaptiveAvgPool=AdaptiveAvgPool)
 
     if use_gpu:
         if arch.lower().startswith('alexnet') or arch.lower().startswith('vgg'):
@@ -64,7 +69,7 @@ def run():
 
 
     if class_aware:
-        train_set = data.ChallengerSceneFolder(data.TRAIN_ROOT, data_transforms('train'))
+        train_set = data.ChallengerSceneFolder(data.TRAIN_ROOT, data_transforms('train',input_size, train_scale, test_scale))
         train_loader = torch.utils.data.DataLoader(
                 train_set,
                 batch_size=BATCH_SIZE, shuffle=False,
@@ -72,19 +77,19 @@ def run():
                 num_workers=INPUT_WORKERS, pin_memory=use_gpu)
     else:
         train_loader = torch.utils.data.DataLoader(
-                data.ChallengerSceneFolder(data.TRAIN_ROOT, data_transforms('train')),
+                data.ChallengerSceneFolder(data.TRAIN_ROOT, data_transforms('train',input_size, train_scale, test_scale)),
                 batch_size=BATCH_SIZE, shuffle=True,
                 num_workers=INPUT_WORKERS, pin_memory=use_gpu)
         
     val_loader = torch.utils.data.DataLoader(
-            data.ChallengerSceneFolder(data.VALIDATION_ROOT, data_transforms('validation')),
+            data.ChallengerSceneFolder(data.VALIDATION_ROOT, data_transforms('validation',input_size, train_scale, test_scale)),
             batch_size=BATCH_SIZE, shuffle=False,
             num_workers=INPUT_WORKERS, pin_memory=use_gpu)
 
 
     criterion = nn.CrossEntropyLoss().cuda() if use_gpu else nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr, betas=betas, eps=eps, weight_decay=weight_decay) 
-
+    #optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay)
 
     if evaluate:
         validate(val_loader, model, criterion)
