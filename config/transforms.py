@@ -4,7 +4,7 @@ import torch
 from torchvision import transforms
 import random
 from PIL import Image
-from .transforms_master import ColorJitter
+from .transforms_master import ColorJitter, scale
 
 input_size = 224 # currenttly fixed
 train_scale = 256 # currently not used in 'train'
@@ -12,7 +12,7 @@ test_scale = 256
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
 def my_transform(img):
-    img = transforms.scale(img, test_scale)
+    img = scale(img, test_scale)
     imgs = transforms.ten_crop(img, input_size)  # this is a list of PIL Images
     return torch.stack([normalize(transforms.to_tensor(x)) for x in imgs], 0) # returns a 4D tensor
 
