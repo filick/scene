@@ -21,8 +21,8 @@ INPUT_WORKERS = 8
 checkpoint_filename = arch + '_' + pretrained
 best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar' #tar
 input_size = 256 #[224, 256, 384, 480, 640] 
-train_scale = 384
-test_scale = 384
+train_scale = 256
+test_scale = 256
 AdaptiveAvgPool = True
 
 
