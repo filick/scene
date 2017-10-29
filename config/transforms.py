@@ -1,4 +1,22 @@
 # https://github.com/pytorch/vision/blob/master/torchvision/transforms.py
+# https://github.com/ncullen93/torchsample/tree/master/torchsample/transforms
+# https://keras.io/preprocessing/image/
+'''
+https://zhuanlan.zhihu.com/p/29513760
+
+resize
+rescale
+noise
+flip
+rotate
+shift
+zoom
+shear
+contrast
+channel shift
+PCA
+gamma
+'''
 
 import torch
 from torchvision import transforms
@@ -47,8 +65,15 @@ def data_transforms(phase, input_size = 224, train_scale = 256, test_scale = 256
         transforms.ToTensor(), 
         normalize
     ]),
+    'train2': transforms.Compose([
+        transforms.RandomSizedCrop(input_size), 
+        transforms.RandomHorizontalFlip(), 
+        ColorJitter(),
+        transforms.ToTensor(), 
+        normalize
+    ]),
     'multi_scale_train': transforms.Compose([   ## following ResNet paper, but not include the standard color augmentation from AlexNet
-        transforms.Scale(random.randint(256, 512)),  # May be adjusted to be bigger
+        transforms.Scale(random.randint(384, 640)),  # May be adjusted to be bigger
         transforms.RandomCrop(input_size),  # not RandomSizedCrop
         transforms.RandomHorizontalFlip(), 
         ColorJitter(), # different from AlexNet's PCA method which is adopted in the ResNet paper?
@@ -67,6 +92,6 @@ def data_transforms(phase, input_size = 224, train_scale = 256, test_scale = 256
         transforms.ToTensor(),
         normalize
     ]),
-    'ten_crop': my_transform # todo: my_transform输入不同参数
+    'ten_crop': my_transform #todo: merge my_transform
     }
     return composed_data_transforms[phase]

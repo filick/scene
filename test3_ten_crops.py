@@ -12,11 +12,11 @@ import pickle
 
 
 
-arch = 'resnet18'
+arch = 'resnet152'
 pretrained = 'places'
 phases = ['test', 'val']
 use_gpu = torch.cuda.is_available()
-batch_size = 64
+batch_size = 128
 INPUT_WORKERS = 8
 checkpoint_filename = arch + '_' + pretrained
 best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar' #.tar
@@ -40,9 +40,9 @@ if use_gpu:
 
 
 
-with open('data/ai_challenger_scene_test_a_20170922/scene_test_annotations.json', 'r') as f: #label文件, 测试的是我自己生成的
+with open('data/test/scene_test_annotations.json', 'r') as f: #label文件, 测试的是我自己生成的
     label_raw_test = json.load(f)
-with open('data/ai_challenger_scene_validation_20170908/scene_validation_annotations_20170908.json', 'r') as f: #label文件
+with open('data/validation/scene_validation_annotations_20170908.json', 'r') as f: #label文件
     label_raw_val = json.load(f)
 
 
@@ -76,13 +76,13 @@ class SceneDataset(Dataset):
 
 
 transformed_dataset_test = SceneDataset(json_labels=label_raw_test,
-                                    root_dir='data/ai_challenger_scene_test_a_20170922/scene_test_a_images_20170922',
+                                    root_dir='/home/member/fuwang/projects/scene/data/ai_challenger_scene_test_a_20170922/scene_test_a_images_20170922',
                                            transform=data_transforms('ten_crop')
                                            )      
 transformed_dataset_val = SceneDataset(json_labels=label_raw_val,
-                                    root_dir='data/ai_challenger_scene_validation_20170908/scene_validation_images_20170908',
+                                    root_dir='/home/member/fuwang/projects/scene/data/ai_challenger_scene_validation_20170908/scene_validation_images_20170908',
                                            transform=data_transforms('ten_crop')
-                                           )         
+                                           )            
 dataloader = {'test':DataLoader(transformed_dataset_test, batch_size=batch_size,shuffle=False, num_workers=INPUT_WORKERS),
              'val':DataLoader(transformed_dataset_val, batch_size=batch_size,shuffle=False, num_workers=INPUT_WORKERS)
              }

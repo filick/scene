@@ -12,19 +12,21 @@ import pickle
 
 
 
-arch = 'resnet18'
+arch = 'resnet152'
 pretrained = 'places'
-phases = ['test', 'val']
+phases = ['test','val']
 use_gpu = torch.cuda.is_available()
-batch_size = 64
+batch_size = 128
 INPUT_WORKERS = 8
 checkpoint_filename = arch + '_' + pretrained
 best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar' #tar
+input_size = 256 #[224, 256, 384, 480, 640] 
+train_scale = 384
+test_scale = 384
+AdaptiveAvgPool = True
 
 
-
-
-model_conv = load_model(arch, pretrained, use_gpu=use_gpu)
+model_conv = load_model(arch, pretrained, use_gpu=use_gpu,AdaptiveAvgPool=AdaptiveAvgPool)
 for param in model_conv.parameters():
     param.requires_grad = False #节省显存
 
@@ -76,12 +78,12 @@ class SceneDataset(Dataset):
 
 
 transformed_dataset_test = SceneDataset(json_labels=label_raw_test,
-                                    root_dir='data/test/scene_test_a_images_20170922',
-                                           transform=data_transforms('test')
+                                    root_dir='/home/member/fuwang/projects/scene/data/ai_challenger_scene_test_a_20170922/scene_test_a_images_20170922',
+                                           transform=data_transforms('test',input_size, train_scale, test_scale)
                                            )      
 transformed_dataset_val = SceneDataset(json_labels=label_raw_val,
-                                    root_dir='data/validation/scene_validation_images_20170908',
-                                           transform=data_transforms('validation')
+                                    root_dir='/home/member/fuwang/projects/scene/data/ai_challenger_scene_validation_20170908/scene_validation_images_20170908',
+                                           transform=data_transforms('validation',input_size, train_scale, test_scale)
                                            )         
 dataloader = {'test':DataLoader(transformed_dataset_test, batch_size=batch_size,shuffle=False, num_workers=INPUT_WORKERS),
              'val':DataLoader(transformed_dataset_val, batch_size=batch_size,shuffle=False, num_workers=INPUT_WORKERS)
