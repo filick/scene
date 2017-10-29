@@ -1,13 +1,17 @@
+'''
+1,3: 95.84 [0.95668]
+'''
+
 import json
 import pickle
 import copy
 
 
 phases = ['test', 'val'] #['test', 'val']
-files = {'val':['submit/resnet152_places_softmax1_val.txt', 'submit/resnet152_places_softmax2_val.txt',
-                'submit/resnet152_places_softmax3_val.txt', 'submit/resnet152_places_softmax4_val.txt']
-    ,   'test':['submit/resnet152_places_softmax1_test.txt', 'submit/resnet152_places_softmax2_test.txt',
-                'submit/resnet152_places_softmax3_test.txt', 'submit/resnet152_places_softmax4_test.txt']
+files = {'val':['submit/resnet152_places_softmax1_val.txt',
+                'submit/resnet152_places_softmax3_val.txt']
+    ,   'test':['submit/resnet152_places_softmax1_test.txt',
+                'submit/resnet152_places_softmax3_test.txt']
     }
 
 

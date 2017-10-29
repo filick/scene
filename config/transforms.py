@@ -33,6 +33,13 @@ def my_transform(img, input_size, train_scale, test_scale):
     img = scale(img, test_scale)
     imgs = ten_crop(img, input_size)  # this is a list of PIL Images
     return torch.stack([normalize(to_tensor(x)) for x in imgs], 0) # returns a 4D tensor
+class my_ten_crops(object):
+    def __init__(self, input_size, train_scale, test_scale):
+        self.input_size = input_size
+        self.train_scale = train_scale
+        self.test_scale = test_scale
+    def __call__(self, img):
+        return my_transform(img, self.input_size, self.train_scale, self.test_scale)
 
 # following ResNet paper, note that center crop should be removed if we can handle different image sizes in a batch
 def hflip(img):
@@ -92,6 +99,6 @@ def data_transforms(phase, input_size = 224, train_scale = 256, test_scale = 256
         transforms.ToTensor(),
         normalize
     ]),
-    'ten_crop': my_transform #todo: merge my_transform
+    'ten_crop': my_ten_crops(input_size, train_scale, test_scale)#todo: merge my_transform
     }
     return composed_data_transforms[phase]
