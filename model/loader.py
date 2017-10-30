@@ -47,6 +47,7 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
         elif arch == 'resnet152':
             model = resnet152_places365
             model.load_state_dict(torch.load(os.path.join(model_file_root, 'resnet152_places365.pth')))
+            model._modules['10']._modules['1'] = nn.Linear(2048, num_classes)
             if AdaptiveAvgPool:
                 model._modules['8'] = nn.AdaptiveAvgPool2d(1)
             if SPP:

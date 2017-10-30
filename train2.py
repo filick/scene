@@ -39,12 +39,13 @@ lr_decay = 0.5
 BATCH_SIZE = 130
 INPUT_WORKERS = 8
 epochs = 100
-lr = 0.001 
+lr = 0.01 
+lr_min = 1e-7
 
-if_fc = True #是否先训练最后新加的层
-lr1 = 0.000 #if_fc = True, 里面的层先不动
+if_fc = True #是否先训练最后新加的层，目前的实现不对。
+lr1 = lr_min #if_fc = True, 里面的层先不动
 lr2 = 0.2 #if_fc = True, 先学好最后一层
-lr2_min = 0.0019 #lr2每次除以10降到lr2_min，然后lr2 = lr, lr1 = lr2/slow
+lr2_min = 0.019#0.0019 #lr2每次除以10降到lr2_min，然后lr2 = lr, lr1 = lr2/slow
 slow = 1 #if_fc = True, lr1比lr2慢的倍数
 print('lr=%.8f, lr1=%.8f, lr2=%.8f, lr2_min=%.8f'% (lr,lr1,lr2,lr2_min))
 
@@ -66,6 +67,7 @@ hyperparameters = {
     'epochs': epochs,
     'if_fc': if_fc,
     'lr': lr,
+    'lr_min': lr_min,
     'lr1': lr1,
     'lr2': lr2,
     'lr2_min': lr2_min,
@@ -97,35 +99,6 @@ best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar'
 
 def run():
     model = load_model(arch, pretrained, use_gpu=use_gpu, AdaptiveAvgPool=AdaptiveAvgPool, SPP=SPP, num_levels=num_levels, pool_type=pool_type)
-    if if_fc:
-        if pretrained == 'imagenet' or arch == 'resnet50' or arch == 'resnet18':
-            ignored_params = list(map(id, model.fc.parameters()))
-            base_params = filter(lambda p: id(p) not in ignored_params,
-                                 model.parameters())
-            lr_dicts = [{'params': base_params, 'lr':lr1}, 
-                         {'params': model.fc.parameters(), 'lr':lr2}]
-            
-        elif pretrained =='places':
-            if arch == 'preact_resnet50':
-                lr_dicts = list()
-                lr_dicts.append({'params': model._modules['12']._modules['1'].parameters(), 'lr':lr2})
-                for _, index in enumerate(model._modules):
-                    if index != '12':
-                        lr_dicts.append({'params': model._modules[index].parameters(), 'lr':lr1})
-                    else:
-                        for index2,_ in enumerate(model._modules[index]):
-                            if index2 !=1:
-                                lr_dicts.append({'params': model._modules[index]._modules[str(index2)].parameters(), 'lr':lr1})
-            elif arch == 'resnet152':
-                lr_dicts = list()
-                lr_dicts.append({'params': model._modules['10']._modules['1'].parameters(), 'lr':lr2})
-                for _, index in enumerate(model._modules):
-                    if index != '10':
-                        lr_dicts.append({'params': model._modules[index].parameters(), 'lr':lr1})
-                    else:
-                        for index2,_ in enumerate(model._modules[index]):
-                            if index2 !=1:
-                                lr_dicts.append({'params': model._modules[index]._modules[str(index2)].parameters(), 'lr':lr1})
                                 
     if use_gpu:
         if arch.lower().startswith('alexnet') or arch.lower().startswith('vgg'):
@@ -173,9 +146,37 @@ def run():
 
 
     criterion = nn.CrossEntropyLoss().cuda() if use_gpu else nn.CrossEntropyLoss()
-    
 
     if if_fc:
+        if pretrained == 'imagenet' or arch == 'resnet50' or arch == 'resnet18':
+            ignored_params = list(map(id, model.module.fc.parameters()))
+            base_params = filter(lambda p: id(p) not in ignored_params,
+                                 model.module.parameters())
+            lr_dicts = [{'params': base_params, 'lr':lr1}, 
+                         {'params': model.module.fc.parameters(), 'lr':lr2}]
+            
+        elif pretrained =='places':
+            if arch == 'preact_resnet50':
+                lr_dicts = list()
+                lr_dicts.append({'params': model.module._modules['12']._modules['1'].parameters(), 'lr':lr2})
+                for _, index in enumerate(model.module._modules):
+                    if index != '12':
+                        lr_dicts.append({'params': model.module._modules[index].parameters(), 'lr':lr1})
+                    else:
+                        for index2,_ in enumerate(model.module._modules[index]):
+                            if index2 !=1:
+                                lr_dicts.append({'params': model.module._modules[index]._modules[str(index2)].parameters(), 'lr':lr1})
+            elif arch == 'resnet152':
+                lr_dicts = list()
+                lr_dicts.append({'params': model.module._modules['10']._modules['1'].parameters(), 'lr':lr2})
+                for _, index in enumerate(model.module._modules):
+                    if index != '10':
+                        lr_dicts.append({'params': model.module._modules[index].parameters(), 'lr':lr1})
+                    else:
+                        for index2,_ in enumerate(model.module._modules[index]):
+                            if index2 !=1:
+                                lr_dicts.append({'params': model.module._modules[index]._modules[str(index2)].parameters(), 'lr':lr1})
+
         if optim_type == 'Adam':
                 optimizer = optim.Adam(lr_dicts,
                                          betas=betas, eps=eps, weight_decay=weight_decay) 
@@ -262,15 +263,15 @@ def _each_epoch(mode, loader, model, criterion, optimizer=None, epoch=None):
         end = time.time()
 
     if mode == 'train':
-#            if i % print_freq == 0:
-#                print('Epoch: [{0}][{1}/{2}]\t'
-#                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-#                    'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-#                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-#                    'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-#                    'Prec@3 {top3.val:.3f} ({top3.avg:.3f})'.format(
-#                    epoch, i, len(loader), batch_time=batch_time,
-#                    data_time=data_time, loss=losses, top1=top1, top3=top3))
+#        if i % print_freq == 0:
+#            print('Epoch: [{0}][{1}/{2}]\t'
+#                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+#                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+#                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+#                'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+#                'Prec@3 {top3.val:.3f} ({top3.avg:.3f})'.format(
+#                epoch, i, len(loader), batch_time=batch_time,
+#                data_time=data_time, loss=losses, top1=top1, top3=top3))
         index = epoch
         agent.append(names['train_loss'], index, losses.avg)
         agent.append(names['train_accu1'], index, top1.avg)
@@ -307,7 +308,8 @@ def adjust_learning_rate(optimizer, epoch, if_fc):
         else:
             lr2 = lr
             lr1 = lr2/slow
-            lr = lr * lr_decay
+            if lr > lr_min:
+                lr = lr * lr_decay
         print('lr2, lr1, lr')
         print(lr2)
         print(lr1)
@@ -317,7 +319,8 @@ def adjust_learning_rate(optimizer, epoch, if_fc):
             param_group['lr'] = lr1
         param_groups[0]['lr'] = lr2
     else:
-        lr = lr * lr_decay
+        if lr > lr_min:
+            lr = lr * lr_decay
         print(lr)
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
