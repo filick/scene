@@ -21,6 +21,7 @@ model_file_root = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'pl
 
 
 def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False, SPP=False, num_levels=3, pool_type='avg_pool'):
+    num_mul = sum([(2**i)**2 for i in range(num_levels)])
     if SPP and AdaptiveAvgPool:
         raise ValueError("Set AdaptiveAvgPool = False when using SPP = True")
     if AdaptiveAvgPool or SPP:
@@ -41,15 +42,16 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
                 model._modules['10'] = nn.AdaptiveAvgPool2d(1)
             if SPP:
                 model._modules['10'] = SPPLayer(num_levels, pool_type) #1时应该等价于adaptiveavgpool
+                model._modules['12']._modules['1'] = nn.Linear(2048*num_mul, num_classes)
             return model
         elif arch == 'resnet152':
             model = resnet152_places365
             model.load_state_dict(torch.load(os.path.join(model_file_root, 'resnet152_places365.pth')))
-            model._modules['10']._modules['1'] = nn.Linear(2048, num_classes)
             if AdaptiveAvgPool:
                 model._modules['8'] = nn.AdaptiveAvgPool2d(1)
             if SPP:
                 model._modules['8'] = SPPLayer(num_levels, pool_type)
+                model._modules['10']._modules['1'] = nn.Linear(2048*num_mul, num_classes)
             return model
         else:
             model_file = os.path.join(model_file_root, 'whole_%s_places365.pth.tar' % (arch))
@@ -69,6 +71,7 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
             model.avgpool = nn.AdaptiveAvgPool2d(1)
         if SPP:
             model.avgpool = SPPLayer(num_levels, pool_type)
+            model.fc = nn.Linear(model.fc.in_features*num_mul, num_classes)
     elif arch.startswith('densenet'):
         model.classifier = nn.Linear(model.classifier.in_features, num_classes)
     elif arch.startswith('inception'):

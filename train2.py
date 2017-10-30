@@ -25,8 +25,8 @@ print_freq = 10
 start_epoch = 0
 use_gpu = torch.cuda.is_available()
 class_aware = True
-AdaptiveAvgPool=True
-SPP = False
+AdaptiveAvgPool = False
+SPP = True
 num_levels = 3
 pool_type = 'avg_pool'
 input_size = 256 #[224, 256, 384, 480, 640] 
@@ -43,9 +43,10 @@ lr = 0.001
 
 if_fc = True #是否先训练最后新加的层
 lr1 = 0.000 #if_fc = True, 里面的层先不动
-lr2 = 0.1 #if_fc = True, 先学好最后一层
-lr2_min = 0.0009 #lr2每次除以10降到lr2_min，然后lr2 = lr, lr1 = lr2/slow
+lr2 = 0.2 #if_fc = True, 先学好最后一层
+lr2_min = 0.0019 #lr2每次除以10降到lr2_min，然后lr2 = lr, lr1 = lr2/slow
 slow = 1 #if_fc = True, lr1比lr2慢的倍数
+print('lr=%.8f, lr1=%.8f, lr2=%.8f, lr2_min=%.8f'% (lr,lr1,lr2,lr2_min))
 
 weight_decay=0 #.05 #0.0005 #0.0001  0.05太大。试下0.01?
 optim_type = 'SGD' #Adam SGD

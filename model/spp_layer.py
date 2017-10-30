@@ -14,10 +14,10 @@ class SPPLayer(nn.Module):
         for i in range(self.num_levels):
             kernel_size = h // (2 ** i)
             if self.pool_type == 'max_pool':
-                tensor = nn.max_pool2d(x, kernel_size=kernel_size,
+                tensor = nn.functional.max_pool2d(x, kernel_size=kernel_size,
                                       stride=kernel_size).view(bs, -1)
             else:
-                tensor = nn.avg_pool2d(x, kernel_size=kernel_size,
+                tensor = nn.functional.avg_pool2d(x, kernel_size=kernel_size,
                                       stride=kernel_size).view(bs, -1)
             pooling_layers.append(tensor)
         x = torch.cat(pooling_layers, dim=-1)
