@@ -7,6 +7,7 @@ import torchvision
 from .Preact_resnet50_places365 import Preact_resnet50_places365
 from .resnet152_places365 import resnet152_places365
 import torchvision.models
+from .spp_layer import SPPLayer
 
 
 support_models = {
@@ -19,10 +20,12 @@ support_models = {
 model_file_root = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'places365')
 
 
-def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False):
-    if AdaptiveAvgPool:
+def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False, SPP=False, num_levels=3, pool_type='avg_pool'):
+    if SPP and AdaptiveAvgPool:
+        raise ValueError("Set AdaptiveAvgPool = False when using SPP = True")
+    if AdaptiveAvgPool or SPP:
         if not 'resnet' in arch:
-            raise NotImplementedError("Currently AdaptiveAvgPool only supports resnets")
+            raise NotImplementedError("Currently AdaptiveAvgPool and SPP only support resnets")
     
     if not arch in support_models[pretrained]:
         raise ValueError("No such places365 or imagenet pretrained model found")
@@ -36,6 +39,8 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
             model._modules['12']._modules['1'] = nn.Linear(2048, num_classes)
             if AdaptiveAvgPool:
                 model._modules['10'] = nn.AdaptiveAvgPool2d(1)
+            if SPP:
+                model._modules['10'] = SPPLayer(num_levels, pool_type) #1时应该等价于adaptiveavgpool
             return model
         elif arch == 'resnet152':
             model = resnet152_places365
@@ -43,6 +48,8 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
             model._modules['10']._modules['1'] = nn.Linear(2048, num_classes)
             if AdaptiveAvgPool:
                 model._modules['8'] = nn.AdaptiveAvgPool2d(1)
+            if SPP:
+                model._modules['8'] = SPPLayer(num_levels, pool_type)
             return model
         else:
             model_file = os.path.join(model_file_root, 'whole_%s_places365.pth.tar' % (arch))
@@ -60,6 +67,8 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
         model.fc = nn.Linear(model.fc.in_features, num_classes)
         if AdaptiveAvgPool:
             model.avgpool = nn.AdaptiveAvgPool2d(1)
+        if SPP:
+            model.avgpool = SPPLayer(num_levels, pool_type)
     elif arch.startswith('densenet'):
         model.classifier = nn.Linear(model.classifier.in_features, num_classes)
     elif arch.startswith('inception'):
