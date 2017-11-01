@@ -1,3 +1,24 @@
+'''
+各种卷积的动态图
+http://www.sohu.com/a/159591827_390227
+
+fcn
+    densenet: 好改
+    vgg, alexnet: https://github.com/pytorch/vision/pull/184
+dilation
+    resnet(dilation): https://github.com/pytorch/vision/pull/190
+    dilation卷积本身有接口
+Depthwise Separable Convolution
+    https://discuss.pytorch.org/t/separable-convolutions-in-pytorch/3407
+    https://discuss.pytorch.org/t/depthwise-and-separable-convolutions-in-pytorch/7315
+attention
+    什么是cnn的注意力？
+    pytorch实现？
+Deformable Convolution
+    https://github.com/1zb/deformable-convolution-pytorch 可能更快？
+    https://github.com/oeway/pytorch-deform-conv
+'''
+
 import os
 from functools import partial
 import pickle

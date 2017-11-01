@@ -16,9 +16,18 @@ class SPPLayer(nn.Module):
             if self.pool_type == 'max_pool':
                 tensor = nn.functional.max_pool2d(x, kernel_size=kernel_size,
                                       stride=kernel_size).view(bs, -1)
-            else:
+            elif self.pool_type == 'avg_pool':
                 tensor = nn.functional.avg_pool2d(x, kernel_size=kernel_size,
                                       stride=kernel_size).view(bs, -1)
+            elif self.pool_type == 'mix_pool':
+                if i == 0:
+                    tensor = nn.functional.avg_pool2d(x, kernel_size=kernel_size,
+                                      stride=kernel_size).view(bs, -1)
+                else:
+                    tensor = nn.functional.max_pool2d(x, kernel_size=kernel_size,
+                                      stride=kernel_size).view(bs, -1)
+            else:
+                raise NotImplementedError("Currently SPP only supports max, avg and mix _pool")
             pooling_layers.append(tensor)
         x = torch.cat(pooling_layers, dim=-1)
         return x
