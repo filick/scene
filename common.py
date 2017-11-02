@@ -1,3 +1,5 @@
+import random
+import math
 from data import transforms
 
 
@@ -21,3 +23,27 @@ def basic_validate_transform(img_size):
                 transforms.CenterCrop(img_size),
                 transforms.ToTensor(),
                 img_normalize])
+
+
+def default_train_transform(img_size):
+    return transforms.Compose([
+                transforms.AdaptiveRandomCrop(img_size),
+                transforms.RandomHorizontalFlip(),
+                transforms.ColorJitter(),
+                transforms.ToTensor(), 
+                img_normalize])
+
+def default_validate_transform(img_sizes):
+    return transforms.Compose([
+                transforms.BestCenterCrop(img_sizes),
+                transforms.ToTensor(),
+                img_normalize])
+
+
+def multiscale_train_trainsforms(multisizes):
+    return list(map(lambda size: default_train_transform(size), multisizes))
+
+
+#################  Dataloader ##################
+
+# grouping

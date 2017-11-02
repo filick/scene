@@ -32,6 +32,9 @@ def train(scheme, epochs, agent=None,
                 metric = metric[0:-1]
             hyperparameters['label'] = label
             names[label] = agent.register(hyperparameters, metric)
+        hyperparameters['label'] = 'lr'
+        names['lr'] = agent.register(hyperparameters, 'lr')
+
 
     best_prec3 = 0
     start_epoch = 0
@@ -41,7 +44,7 @@ def train(scheme, epochs, agent=None,
             print("=> loading checkpoint '{}'".format(latest_check))
             checkpoint = torch.load(latest_check)
             start_epoch = checkpoint['epoch']
-            best_prec1 = checkpoint['best_prec1']
+            best_prec3 = checkpoint['best_prec3']
             model.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(latest_check, checkpoint['epoch']))
@@ -114,7 +117,7 @@ def train(scheme, epochs, agent=None,
             .format(top1=top1, top3=top3))
 
         if mode == 'validation':
-            index = (epoch + 1) * len(loader) - 1
+            index = (epoch + 1) * len(train_loader) - 1
             agent.append(names['valid_loss'], index, losses.val)
             agent.append(names['valid_accu1'], index, top1.val)
             agent.append(names['valid_accu3'], index, top3.val)
@@ -140,6 +143,7 @@ def train(scheme, epochs, agent=None,
         if isinstance(lr_schedule, _LRScheduler):
             lr_schedule.step()
 
+        agent.append(names['lr'], epoch * len(train_loader), lr_schedule.get_lr()[0])
         # train for one epoch
         loss, top1, top3 = train_epoch(train_loader, epoch)
         prec3 = top3.val
@@ -198,8 +202,8 @@ def accuracy(output, target, topk=(1,)):
 
 
 if __name__ == '__main__':
-    from basic import BasicTrainScheme
-    trainscheme = BasicTrainScheme()
+    from basic import BasicTrainScheme, MultiScaleTrainScheme
+    trainscheme = MultiScaleTrainScheme()
     agent = Agent()
     train(trainscheme, epochs=100, agent=agent,
           try_resume=True, print_freq=1, 

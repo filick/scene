@@ -1059,3 +1059,57 @@ class ColorJitter(object):
         transform = self.get_params(self.brightness, self.contrast,
                                     self.saturation, self.hue)
         return transform(img)
+
+
+class AdaptiveRandomCrop(object):
+
+    def __init__(self, size):
+        if isinstance(size, int):
+            self.size = (size, size)
+        else:
+            self.size = size
+
+    @staticmethod
+    def get_params(img, size):
+        w, h = img.size
+        th, tw = size
+        scaling = min(w / tw, h / th)
+        ch, cw = int(th * scaling), int(tw * scaling)
+        portion = (ch * cw) / (w * h)
+        if portion < 0.3:
+            return ch, cw
+        else:
+            scaling = math.sqrt(random.uniform(0.3 / portion, 1))
+            ch, cw = int(ch * scaling), int(cw * scaling)
+            return ch, cw
+
+    def __call__(self, img):
+        cropsize = self.get_params(img, self.size)
+        tr = Compose([RandomCrop(cropsize), Resize(self.size)])
+        return tr(img)
+
+
+class BestCenterCrop(object):
+
+    def __init__(self, expected_sizes):
+        self.expected_sizes = expected_sizes
+
+    @staticmethod
+    def get_params(img, sizes):
+        w, h = img.size
+        best_portion = 0
+        for size in sizes:
+            th, tw = size
+            scaling = min(w / tw, h / th)
+            ch, cw = int(th * scaling), int(tw * scaling)
+            portion = (ch * cw) / (w * h)
+            if portion > best_portion:
+                best_portion = portion
+                best_size = size
+                best_cropsize = (ch, cw)
+        return best_size, best_cropsize 
+
+    def __call__(self, img):
+        size, cropsize = self.get_params(img, self.expected_sizes)
+        tr = Compose([CenterCrop(cropsize), Resize(size)])
+        return tr(img)

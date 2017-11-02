@@ -59,6 +59,7 @@ def default_loader(path):
 
 class ChallengerSceneFolder(td.ImageFolder):
 
+
     def __init__(self, root, transform=None, target_transform=None,
                  loader=default_loader):
         json_label = None
@@ -95,3 +96,10 @@ class ChallengerSceneFolder(td.ImageFolder):
         self.target_transform = target_transform
         self.loader = loader
         self.classes = range(80)
+
+
+    def imgsize_at(self, index):
+        path, target = self.imgs[index]
+        with open(path, 'rb') as f:
+            with Image.open(f) as img:
+                return img.size[1], img.size[0]
