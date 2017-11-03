@@ -93,10 +93,11 @@ class WithSizeSampler(Sampler):
 
 class GroupingBatchSampler(object):
 
-    def __init__(self, sampler, batch_size, grouping):
+    def __init__(self, sampler, batch_size, grouping, drop_last=False):
         self.sampler = sampler
         self.batch_size = batch_size
         self.grouping = grouping
+        self.drop_last = drop_last
 
     def __iter__(self):
         batch = {}
@@ -109,9 +110,10 @@ class GroupingBatchSampler(object):
             if len(batch[group]) == self.batch_size:
                 yield batch[group]
                 batch[group] = []
-        for group, b in batch.items():
-            if len(b) > 0:
-                yield b
+        if not self.drop_last:
+            for group, b in batch.items():
+                if len(b) > 0:
+                    yield b
 
     def __len__(self):
         raise NotImplementedError("Not supported")

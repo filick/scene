@@ -1,5 +1,5 @@
 from scheme import TrainScheme
-from model import load_model, FCWrapper, SPPWrapper
+from model import load_model, FCWrapper, SPPWrapper, SPPLayer
 import data
 from data.dataloader import MultiTransformWrapper
 from data import transforms, sample
@@ -95,15 +95,16 @@ class MultiScaleTrainScheme(BasicTrainScheme):
         self.hyperparams['arch'] = arch
         self.hyperparams['pretrained'] = pretrained
 
-        model = load_model(arch, pretrained, wrapper=SPPWrapper(), use_gpu=torch.cuda.is_available())
-        self.hyperparams['wrapper'] = 'sppnet3'
+        model = load_model(arch, pretrained, wrapper=SPPWrapper(spp_layer=SPPLayer(2)), use_gpu=torch.cuda.is_available())
+        self.hyperparams['wrapper'] = 'sppnet2'
 
         return model
 
 
     def init_loader(self):
         batch_size = 100
-        multi_imgsizes = [(224, 448),] + [(288, 384), ] * 4 + [(320, 320)] * 2 + [(384, 288)] * 2 + [(448, 224)]
+        # multi_imgsizes = [(224, 448),] + [(288, 384), ] * 4 + [(320, 320)] * 2 + [(384, 288)] * 2 + [(448, 224)]
+        multi_imgsizes = [(288, 384),] * 7 + [(384, 288),] * 2
         num_workers = 8
         use_gpu = torch.cuda.is_available()
 
@@ -114,7 +115,7 @@ class MultiScaleTrainScheme(BasicTrainScheme):
         train_loader = torch.utils.data.DataLoader(
                         train_set,
                         batch_size=batch_size, shuffle=True,
-                        num_workers=num_workers, pin_memory=use_gpu)
+                        num_workers=num_workers, pin_memory=use_gpu, drop_last=True)
         multiscale_transforms = multiscale_train_trainsforms(multi_imgsizes)
         train_loader = MultiTransformWrapper(train_loader, multiscale_transforms)
 
@@ -148,7 +149,7 @@ class MultiScaleTrainScheme(BasicTrainScheme):
 
         opt = optim.Adam(self.model.parameters(), lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
 
-        lr_scheduler = lrs.ReduceLROnPlateau(opt, mode='min', factor=0.2, patience=2, cooldown=5)
-        self.hyperparams['lr_schedule'] = 'ReduceLROnPlateau, factor=0.2, patience=2, cooldown=5s'
+        lr_scheduler = lrs.ReduceLROnPlateau(opt, mode='min', factor=0.382, patience=2)
+        self.hyperparams['lr_schedule'] = 'ReduceLROnPlateau, factor=0.382, patience=2'
 
         return opt, lr_scheduler

@@ -116,7 +116,7 @@ def train(scheme, epochs, agent=None,
         print(' * Prec@1 {top1.avg:.3f} Prec@3 {top3.avg:.3f}'
             .format(top1=top1, top3=top3))
 
-        if mode == 'validation':
+        if mode == 'validate':
             index = (epoch + 1) * len(train_loader) - 1
             agent.append(names['valid_loss'], index, losses.val)
             agent.append(names['valid_accu1'], index, top1.val)
