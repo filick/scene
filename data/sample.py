@@ -111,7 +111,7 @@ class GroupingBatchSampler(object):
                 batch[group] = []
         for group, b in batch.items():
             if len(b) > 0:
-                yield batch
+                yield b
 
     def __len__(self):
         raise NotImplementedError("Not supported")

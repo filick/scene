@@ -122,7 +122,7 @@ def train(scheme, epochs, agent=None,
             agent.append(names['valid_accu1'], index, top1.val)
             agent.append(names['valid_accu3'], index, top3.val)
 
-        return loss, top1, top3
+        return losses, top1, top3
 
 
     def validate_epoch(val_loader, epoch):
@@ -143,7 +143,7 @@ def train(scheme, epochs, agent=None,
         if isinstance(lr_schedule, _LRScheduler):
             lr_schedule.step()
 
-        agent.append(names['lr'], epoch * len(train_loader), lr_schedule.get_lr()[0])
+        agent.append(names['lr'], epoch * len(train_loader), optimizer.param_groups[0]['lr'])
         # train for one epoch
         loss, top1, top3 = train_epoch(train_loader, epoch)
         prec3 = top3.val
@@ -154,7 +154,7 @@ def train(scheme, epochs, agent=None,
             prec3 = top3.val
 
         if isinstance(lr_schedule, ReduceLROnPlateau):
-            lr_schedule.step(loss.val)
+            lr_schedule.step(loss.avg)
 
         # remember best prec@1 and save checkpoint
         is_best = prec3 > best_prec3
@@ -206,5 +206,5 @@ if __name__ == '__main__':
     trainscheme = MultiScaleTrainScheme()
     agent = Agent()
     train(trainscheme, epochs=100, agent=agent,
-          try_resume=True, print_freq=1, 
+          try_resume=True, print_freq=20, 
           use_gpu=torch.cuda.is_available())
