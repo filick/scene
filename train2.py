@@ -13,10 +13,11 @@ import time
 import shutil
 import os
 from utils import ClassAwareSampler
+from utils import confusion
 from config import data_transforms
 from hyperboard import Agent
 
-arch = 'resnet152' # preact_resnet50, resnet152
+arch = 'resnet18' # preact_resnet50, resnet152
 pretrained = 'places' #imagenet
 evaluate = False
 checkpoint_filename = arch + '_' + pretrained
@@ -27,22 +28,22 @@ use_gpu = torch.cuda.is_available()
 class_aware = True
 AdaptiveAvgPool = False
 SPP = True
-num_levels = 3
+num_levels = 1 # 1 = fcn
 pool_type = 'avg_pool'
-input_size = 256 #[224, 256, 384, 480, 640] 
-train_scale = 256
-test_scale = 256
+input_size = 224#[224, 256, 384, 480, 640] 
+train_scale = 224
+test_scale = 224
 train_transform = 'train2'
 lr_decay = 0.5
 
 # training parameters:
-BATCH_SIZE = 130
+BATCH_SIZE = 8
 INPUT_WORKERS = 8
 epochs = 100
 lr = 0.01 
-lr_min = 1e-7
+lr_min = 1e-5
 
-if_fc = True #是否先训练最后新加的层，目前的实现不对。
+if_fc = False #是否先训练最后新加的层，目前的实现不对。
 lr1 = lr_min #if_fc = True, 里面的层先不动
 lr2 = 0.2 #if_fc = True, 先学好最后一层
 lr2_min = 0.019#0.0019 #lr2每次除以10降到lr2_min，然后lr2 = lr, lr1 = lr2/slow
@@ -50,7 +51,9 @@ slow = 1 #if_fc = True, lr1比lr2慢的倍数
 print('lr=%.8f, lr1=%.8f, lr2=%.8f, lr2_min=%.8f'% (lr,lr1,lr2,lr2_min))
 
 weight_decay=0 #.05 #0.0005 #0.0001  0.05太大。试下0.01?
-optim_type = 'SGD' #Adam SGD
+optim_type = 'SGD' #Adam SGD http://ruder.io/optimizing-gradient-descent/
+confusions = 'Entropic' #'Pairwise' 'Entropic'
+confusion_weight = 0.001
 betas=(0.9, 0.999)
 eps=1e-08 # 0.1的话一开始都是prec3 4.几
 momentum = 0.9
@@ -74,6 +77,8 @@ hyperparameters = {
     'slow': slow,
     'optim_type': optim_type,
     'weight_decay': weight_decay,
+    'confusions': confusions,
+    'confusion_weight': confusion_weight,
     'eps': eps,
     'input_size': input_size,
     'train_scale': train_scale,
@@ -107,8 +112,8 @@ def run():
         else:
             model = nn.DataParallel(model).cuda()
 
-        best_prec1 = 0
-        best_loss1 = 10000
+    best_prec3 = 0
+    best_loss1 = 10000
 
     if try_resume:
         if os.path.isfile(latest_check):
@@ -116,7 +121,7 @@ def run():
             checkpoint = torch.load(latest_check)
             global start_epoch 
             start_epoch = checkpoint['epoch']
-            best_prec1 = checkpoint['best_prec1']
+            best_prec3 = checkpoint['best_prec3']
             model.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(latest_check, checkpoint['epoch']))
@@ -200,26 +205,30 @@ def run():
             train(train_loader, model, criterion, optimizer, epoch)
 
             # evaluate on validation set
-            prec1, loss1= validate(val_loader, model, criterion, epoch)
+            prec3, loss1= validate(val_loader, model, criterion, epoch)
 
             # remember best prec@1 and save checkpoint
-            is_best = prec1 > best_prec1
-            best_prec1 = max(prec1, best_prec1)
-          
-            
-            is_best_loss = (loss1 <= best_loss1)
-            if is_best_loss:
-                best_loss1 = loss1
+            is_best = prec3 >= best_prec3
+            best_prec3 = max(prec3, best_prec3)
+            if is_best:
                 save_checkpoint({
                     'epoch': epoch + 1,
                     'arch': arch,
                     'state_dict': model.state_dict(),
-                    'best_prec1': best_prec1,
-                }, is_best)
+                    'best_prec3': best_prec3,
+                    'loss1': loss1
+                    }, is_best)
+                best_loss1 = loss1
             else:
-                my_check = torch.load(best_check)
-                model.load_state_dict(my_check['state_dict'])
-                adjust_learning_rate(optimizer, epoch, if_fc)
+                is_best_loss = (loss1 <= best_loss1)
+                if is_best_loss or lr<=lr_min: #lr特别小的时候别来回回滚checkpoint了
+                    best_loss1 = loss1
+                else:
+                    my_check = torch.load(best_check)
+                    model.load_state_dict(my_check['state_dict'])
+                    best_loss1 = my_check['loss1']
+                    #准确率没上升(超过最好)，且loss相对上次没下降时调整lr
+                    adjust_learning_rate(optimizer, epoch, if_fc) 
 
 
 def _each_epoch(mode, loader, model, criterion, optimizer=None, epoch=None):
@@ -245,7 +254,12 @@ def _each_epoch(mode, loader, model, criterion, optimizer=None, epoch=None):
 
         # compute output
         output = model(input_var)
-        loss = criterion(output, target_var)
+        if confusions == 'Pairwise': #'Pairwise' 'Entropic'
+            loss = criterion(output, target_var) + confusion_weight * confusion.PairwiseConfusion(output)
+        elif confusions == 'Entropic':
+            loss = criterion(output, target_var) + confusion_weight * confusion.EntropicConfusion(nn.functional.softmax(output))
+        else:
+            loss = criterion(output, target_var)
 
         # measure accuracy and record loss
         prec1, prec3 = accuracy(output.data, target, topk=(1, 3))
@@ -261,17 +275,18 @@ def _each_epoch(mode, loader, model, criterion, optimizer=None, epoch=None):
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
+        
+        if i % print_freq == 0:  #服务器跑不需要print这个，碍事
+            print('Epoch: [{0}][{1}/{2}]\t'
+                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                'Prec@3 {top3.val:.3f} ({top3.avg:.3f})'.format(
+                epoch, i, len(loader), batch_time=batch_time,
+                data_time=data_time, loss=losses, top1=top1, top3=top3))
 
     if mode == 'train':
-#        if i % print_freq == 0:
-#            print('Epoch: [{0}][{1}/{2}]\t'
-#                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-#                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-#                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-#                'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-#                'Prec@3 {top3.val:.3f} ({top3.avg:.3f})'.format(
-#                epoch, i, len(loader), batch_time=batch_time,
-#                data_time=data_time, loss=losses, top1=top1, top3=top3))
         index = epoch
         agent.append(names['train_loss'], index, losses.avg)
         agent.append(names['train_accu1'], index, top1.avg)
