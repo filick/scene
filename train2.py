@@ -255,7 +255,7 @@ def _each_epoch(mode, loader, model, criterion, optimizer=None, epoch=None):
         # compute output
         output = model(input_var)
         if confusions == 'Pairwise': #'Pairwise' 'Entropic'
-            loss = criterion(output, target_var) + confusion_weight * confusion.PairwiseConfusion(output)
+            loss = criterion(output, target_var) + confusion_weight * confusion.PairwiseConfusion(nn.functional.softmax(output))
         elif confusions == 'Entropic':
             loss = criterion(output, target_var) + confusion_weight * confusion.EntropicConfusion(nn.functional.softmax(output))
         else:
