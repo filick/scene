@@ -29,6 +29,7 @@ from .Preact_resnet50_places365 import Preact_resnet50_places365
 from .resnet152_places365 import resnet152_places365
 import torchvision.models
 from .spp_layer import SPPLayer
+from .compact_bilinear_pooling import CompactBilinearPooling
 
 
 support_models = {
@@ -41,7 +42,7 @@ support_models = {
 model_file_root = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'places365')
 
 
-def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False, SPP=False, num_levels=3, pool_type='avg_pool'):
+def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False, SPP=False, num_levels=3, pool_type='avg_pool', bilinear={'use':False,'dim':16384}, stage=2):
     num_mul = sum([(2**i)**2 for i in range(num_levels)])
     if SPP and AdaptiveAvgPool:
         raise ValueError("Set AdaptiveAvgPool = False when using SPP = True")
@@ -64,6 +65,13 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
             if SPP:
                 model._modules['10'] = SPPLayer(num_levels, pool_type) #1时应该等价于adaptiveavgpool
                 model._modules['12']._modules['1'] = nn.Linear(2048*num_mul, num_classes)
+            if bilinear['use']:
+                input_C = 2048
+                if stage == 1: 
+                    for param in model.parameters():
+                            param.requires_grad = False
+                model._modules['10'] = CompactBilinearPooling(input_C, input_C, bilinear['dim']) 
+                model._modules['12']._modules['1'] = nn.Linear(int(model._modules['12']._modules['1'].in_features/input_C*bilinear['dim']), num_classes) 
             return model
         elif arch == 'resnet152':
             model = resnet152_places365
@@ -74,6 +82,13 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
             if SPP:
                 model._modules['8'] = SPPLayer(num_levels, pool_type)
                 model._modules['10']._modules['1'] = nn.Linear(2048*num_mul, num_classes)
+            if bilinear['use']:
+                input_C = 2048
+                if stage == 1: 
+                    for param in model.parameters():
+                            param.requires_grad = False
+                model._modules['8'] = CompactBilinearPooling(input_C, input_C, bilinear['dim']) 
+                model._modules['10']._modules['1'] = nn.Linear(int(model._modules['10']._modules['1'].in_features/input_C*bilinear['dim']), num_classes) 
             return model
         else:
             model_file = os.path.join(model_file_root, 'whole_%s_places365.pth.tar' % (arch))
@@ -94,6 +109,16 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
         if SPP:
             model.avgpool = SPPLayer(num_levels, pool_type)
             model.fc = nn.Linear(model.fc.in_features*num_mul, num_classes)
+        if bilinear['use']:
+            if arch == 'resnet18' or arch == 'resnet34':
+                input_C = 512# resnet fc之前的通道数， https://github.com/KaimingHe/deep-residual-networks
+            else:
+                input_C = 2048
+            if stage == 1: #第一阶段只训练新加的层
+                for param in model.parameters():
+                        param.requires_grad = False
+            model.avgpool = CompactBilinearPooling(input_C, input_C, bilinear['dim']) #(input_C, input_C, output_C)
+            model.fc = nn.Linear(int(model.fc.in_features/input_C*bilinear['dim']), num_classes) #实际上就是batch_size * dim，因为resnet本来就是pool成1*1了，所以in_features = batch_size * C
     elif arch.startswith('densenet'):
         model.classifier = nn.Linear(model.classifier.in_features, num_classes)
     elif arch.startswith('inception'):
