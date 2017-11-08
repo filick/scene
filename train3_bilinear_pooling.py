@@ -33,14 +33,14 @@ num_levels = 1 # 1 = fcn
 pool_type = 'avg_pool'
 bilinear = {'use':True,'dim':16384}  #没有放进hyper_board
 stage = 1
-input_size = 224#[224, 256, 384, 480, 640] 
-train_scale = 224
-test_scale = 224
+input_size = 352#[224, 256, 384, 480, 640] 
+train_scale = 352
+test_scale = 352
 train_transform = 'train2'
 lr_decay = 0.5
 
 # training parameters:
-BATCH_SIZE = 8
+BATCH_SIZE = 84
 INPUT_WORKERS = 8
 epochs = 100
 lr = 0.01 
@@ -55,8 +55,8 @@ print('lr=%.8f, lr1=%.8f, lr2=%.8f, lr2_min=%.8f'% (lr,lr1,lr2,lr2_min))
 
 weight_decay=0 #.05 #0.0005 #0.0001  0.05太大。试下0.01?
 optim_type = 'SGD' #Adam SGD http://ruder.io/optimizing-gradient-descent/
-confusions = 'Entropic' #'Pairwise' 'Entropic'
-confusion_weight = 0.001
+confusions = 'None' #'Pairwise' 'Entropic'
+confusion_weight = 0.2 #for pairwise loss is 0.1N to 0.2N (where N is the number of classes), and for entropic is 0.1-0.5. https://github.com/abhimanyudubey/confusion
 betas=(0.9, 0.999)
 eps=1e-08 # 0.1的话一开始都是prec3 4.几
 momentum = 0.9
@@ -113,7 +113,8 @@ def run():
             model.features = nn.DataParallel(model.features)
             model.cuda()
         else:
-            model = nn.DataParallel(model).cuda()
+            model = nn.DataParallel(model).cuda()#
+            #model = nn.DataParallel(model, device_ids=[2]).cuda()
 
     best_prec3 = 0
     best_loss1 = 10000
@@ -122,12 +123,12 @@ def run():
         if os.path.isfile(latest_check):
             print("=> loading checkpoint '{}'".format(latest_check))
             checkpoint = torch.load(latest_check)
-            global start_epoch 
-            start_epoch = checkpoint['epoch']
-            best_prec3 = checkpoint['best_prec3']
+            #global start_epoch 
+            #start_epoch = checkpoint['epoch']
+            #best_prec3 = checkpoint['best_prec3']
             model.load_state_dict(checkpoint['state_dict'])
-            print("=> loaded checkpoint '{}' (epoch {})"
-                  .format(latest_check, checkpoint['epoch']))
+            print("=> loaded checkpoint '{}'"
+                  .format(latest_check))
         else:
             print("=> no checkpoint found at '{}'".format(latest_check))
 
@@ -291,15 +292,15 @@ def _each_epoch(mode, loader, model, criterion, optimizer=None, epoch=None):
         batch_time.update(time.time() - end)
         end = time.time()
         
-        if i % print_freq == 0:  #服务器跑不需要print这个，碍事
-            print('Epoch: [{0}][{1}/{2}]\t'
-                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                'Prec@3 {top3.val:.3f} ({top3.avg:.3f})'.format(
-                epoch, i, len(loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=top1, top3=top3))
+#        if i % print_freq == 0:  #服务器跑不需要print这个，碍事
+#            print('Epoch: [{0}][{1}/{2}]\t'
+#                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+#                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+#                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+#                'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+#                'Prec@3 {top3.val:.3f} ({top3.avg:.3f})'.format(
+#                epoch, i, len(loader), batch_time=batch_time,
+#                data_time=data_time, loss=losses, top1=top1, top3=top3))
 
     if mode == 'train':
         index = epoch
