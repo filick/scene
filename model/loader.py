@@ -1,6 +1,9 @@
 '''
+https://github.com/pytorch/vision/tree/master/torchvision/models
+
 各种卷积的动态图
 http://www.sohu.com/a/159591827_390227
+
 
 fcn
     densenet: 好改
@@ -12,8 +15,10 @@ Depthwise Separable Convolution
     https://discuss.pytorch.org/t/separable-convolutions-in-pytorch/3407
     https://discuss.pytorch.org/t/depthwise-and-separable-convolutions-in-pytorch/7315
 attention
-    什么是cnn的注意力？
-    pytorch实现？
+    stn
+    SENet
+    Residual attention network (商汤)
+    RL
 Deformable Convolution
     https://github.com/1zb/deformable-convolution-pytorch 可能更快？
     https://github.com/oeway/pytorch-deform-conv
@@ -42,7 +47,7 @@ support_models = {
 model_file_root = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'places365')
 
 
-def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False, SPP=False, num_levels=3, pool_type='avg_pool', bilinear={'use':False,'dim':16384}, stage=2):
+def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False, SPP=False, num_levels=3, pool_type='avg_pool', bilinear={'use':False,'dim':16384}, stage=2, SENet=False):
     num_mul = sum([(2**i)**2 for i in range(num_levels)])
     if SPP and AdaptiveAvgPool:
         raise ValueError("Set AdaptiveAvgPool = False when using SPP = True")

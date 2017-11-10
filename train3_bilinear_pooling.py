@@ -1,7 +1,24 @@
 '''
+Tune:
 torch转过来的模型怎么控制每一层的lr？
 spp layer
 bilinear: 注意对称（kernel pooling）和不对称（理想？两个cnn学习不同的特征）的情形，还有很多地方（不同想法的组合）没人探索过
+
+
+
+Todo:
+周五： SE-net,label smoothing, 冻结BN (先给places 152模型加！！！)
+周六： Residual Attention Networks 或 stn (先给places 152模型加！！！)
+周日： 用val训练？添加places数据？
+
+再看看各种场景分类的冠军方案和论文
+
+
+
+Future:
+Inception-resnet v2 生成softmax导出集成
+NASNet 生成softmax导出集成
+    https://github.com/tensorflow/models/tree/master/research/slim/nets/nasnet
 '''
 
 import data
@@ -32,7 +49,7 @@ SPP = False
 num_levels = 1 # 1 = fcn
 pool_type = 'avg_pool'
 bilinear = {'use':True,'dim':16384}  #没有放进hyper_board
-stage = 1
+stage = 2 #注意，1只训练新加的fc层，改为2后要用try_resume = True
 input_size = 352#[224, 256, 384, 480, 640] 
 train_scale = 352
 test_scale = 352
@@ -40,11 +57,11 @@ train_transform = 'train2'
 lr_decay = 0.5
 
 # training parameters:
-BATCH_SIZE = 84
+BATCH_SIZE = 72
 INPUT_WORKERS = 8
 epochs = 100
-lr = 0.01 
-lr_min = 1e-5
+lr = 0.001  #0.01  0.001
+lr_min = 1e-6
 
 if_fc = False #是否先训练最后新加的层，目前的实现不对。
 lr1 = lr_min #if_fc = True, 里面的层先不动
