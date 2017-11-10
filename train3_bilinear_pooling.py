@@ -3,10 +3,10 @@ Tune:
 spp layer
 bilinear: 注意对称（kernel pooling）和不对称（理想？两个cnn学习不同的特征）的情形，还有很多地方（不同想法的组合）没人探索过
 SE-net
-
+confusion (label smoothing)
 
 Todo:
-周五： label smoothing, 冻结BN (先给places 152模型加！！！)
+冻结BN, BN_layer.eval()
 周六： Residual Attention Networks 或 stn (先给places 152模型加！！！)
 周日： 用val训练？添加places数据？
 
@@ -75,7 +75,7 @@ print('lr=%.8f, lr1=%.8f, lr2=%.8f, lr2_min=%.8f'% (lr,lr1,lr2,lr2_min))
 weight_decay=0 #.05 #0.0005 #0.0001  0.05太大。试下0.01?
 optim_type = 'SGD' #Adam SGD http://ruder.io/optimizing-gradient-descent/
 confusions = 'None' #'Pairwise' 'Entropic'
-confusion_weight = 0.2 #for pairwise loss is 0.1N to 0.2N (where N is the number of classes), and for entropic is 0.1-0.5. https://github.com/abhimanyudubey/confusion
+confusion_weight = 0.1  #for pairwise loss is 0.1N to 0.2N (where N is the number of classes), and for entropic is 0.1-0.5. https://github.com/abhimanyudubey/confusion
 betas=(0.9, 0.999)
 eps=1e-08 # 0.1的话一开始都是prec3 4.几
 momentum = 0.9

@@ -1,4 +1,5 @@
 # https://github.com/abhimanyudubey/confusion
+# label smoothing: https://arxiv.org/pdf/1512.00567.pdf
 
 import torch
 
