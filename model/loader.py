@@ -35,6 +35,7 @@ from .resnet152_places365 import resnet152_places365
 import torchvision.models
 from .spp_layer import SPPLayer
 from .compact_bilinear_pooling import CompactBilinearPooling
+from .se_resnet152_places365 import give_se_resnet152_places365
 
 
 support_models = {
@@ -47,13 +48,15 @@ support_models = {
 model_file_root = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'places365')
 
 
-def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False, SPP=False, num_levels=3, pool_type='avg_pool', bilinear={'use':False,'dim':16384}, stage=2, SENet=False):
+def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False, SPP=False, num_levels=3, pool_type='avg_pool', bilinear={'use':False,'dim':16384}, stage=2, SENet=False, se_stage=2):
     num_mul = sum([(2**i)**2 for i in range(num_levels)])
     if SPP and AdaptiveAvgPool:
         raise ValueError("Set AdaptiveAvgPool = False when using SPP = True")
-    if AdaptiveAvgPool or SPP:
+    if bilinear['use'] and (SPP or AdaptiveAvgPool):
+        raise ValueError("Set AdaptiveAvgPool, SPP = False when using bilinear")
+    if AdaptiveAvgPool or SPP or SENet:
         if not 'resnet' in arch:
-            raise NotImplementedError("Currently AdaptiveAvgPool and SPP only support resnets")
+            raise NotImplementedError("Currently AdaptiveAvgPool, SPP and SE only support resnets")
     
     if not arch in support_models[pretrained]:
         raise ValueError("No such places365 or imagenet pretrained model found")
@@ -62,6 +65,8 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
         model = torchvision.models.__dict__[arch](pretrained=True)
     elif pretrained == 'places':
         if arch == 'preact_resnet50':
+            if SENet == True:
+                raise NotImplementedError("Currently SE does not support preact_resnet50")
             model = Preact_resnet50_places365
             model.load_state_dict(torch.load(os.path.join(model_file_root, 'Preact_resnet50_places365.pth')))
             model._modules['12']._modules['1'] = nn.Linear(2048, num_classes)
@@ -79,8 +84,20 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
                 model._modules['12']._modules['1'] = nn.Linear(int(model._modules['12']._modules['1'].in_features/input_C*bilinear['dim']), num_classes) 
             return model
         elif arch == 'resnet152':
-            model = resnet152_places365
-            model.load_state_dict(torch.load(os.path.join(model_file_root, 'resnet152_places365.pth')))
+            if SENet == True:
+                model = give_se_resnet152_places365(reduction=16, se_stage=2)
+                #use pretrained weights from places 365
+                original = resnet152_places365
+                original.load_state_dict(torch.load(os.path.join(model_file_root, 'resnet152_places365.pth')))
+                or_dict = original.state_dict()
+                se_dict = model.state_dict()
+                for key, value in or_dict.items():
+                    if key in se_dict:
+                        se_dict[key] = value
+            else:
+                model = resnet152_places365
+                model.load_state_dict(torch.load(os.path.join(model_file_root, 'resnet152_places365.pth')))
+                
             model._modules['10']._modules['1'] = nn.Linear(2048, num_classes)
             if AdaptiveAvgPool:
                 model._modules['8'] = nn.AdaptiveAvgPool2d(1)

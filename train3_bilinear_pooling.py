@@ -1,13 +1,12 @@
 '''
 Tune:
-torch转过来的模型怎么控制每一层的lr？
 spp layer
 bilinear: 注意对称（kernel pooling）和不对称（理想？两个cnn学习不同的特征）的情形，还有很多地方（不同想法的组合）没人探索过
-
+SE-net
 
 
 Todo:
-周五： SE-net,label smoothing, 冻结BN (先给places 152模型加！！！)
+周五： label smoothing, 冻结BN (先给places 152模型加！！！)
 周六： Residual Attention Networks 或 stn (先给places 152模型加！！！)
 周日： 用val训练？添加places数据？
 
@@ -41,23 +40,26 @@ evaluate = False
 checkpoint_filename = arch + '_' + pretrained
 try_resume = False
 print_freq = 10
+if_debug = True
 start_epoch = 0
 use_gpu = torch.cuda.is_available()
 class_aware = True
 AdaptiveAvgPool = False
-SPP = False
+SPP = True
 num_levels = 1 # 1 = fcn
 pool_type = 'avg_pool'
-bilinear = {'use':True,'dim':16384}  #没有放进hyper_board
+bilinear = {'use':False,'dim':16384}  #没有放进hyper_board
 stage = 2 #注意，1只训练新加的fc层，改为2后要用try_resume = True
-input_size = 352#[224, 256, 384, 480, 640] 
-train_scale = 352
-test_scale = 352
+SENet = True
+se_stage = 1 #注意，1只训练新加的所有fc层，改为2后要用try_resume = True
+input_size = 64#[224, 256, 384, 480, 640] 
+train_scale = 64
+test_scale = 64
 train_transform = 'train2'
 lr_decay = 0.5
 
 # training parameters:
-BATCH_SIZE = 72
+BATCH_SIZE = 2
 INPUT_WORKERS = 8
 epochs = 100
 lr = 0.001  #0.01  0.001
@@ -85,6 +87,7 @@ hyperparameters = {
     'SPP': SPP,
     'num_levels': num_levels,
     'pool_type': pool_type,
+    'SENet': SENet,
     'class_aware': class_aware,
     'batch_size': BATCH_SIZE,
     'epochs': epochs,
@@ -123,7 +126,7 @@ best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar'
 
 
 def run():
-    model = load_model(arch, pretrained, use_gpu=use_gpu, AdaptiveAvgPool=AdaptiveAvgPool, SPP=SPP, num_levels=num_levels, pool_type=pool_type, bilinear=bilinear, stage=stage)
+    model = load_model(arch, pretrained, use_gpu=use_gpu, AdaptiveAvgPool=AdaptiveAvgPool, SPP=SPP, num_levels=num_levels, pool_type=pool_type, bilinear=bilinear, stage=stage, SENet=SENet,se_stage=se_stage)
                                 
     if use_gpu:
         if arch.lower().startswith('alexnet') or arch.lower().startswith('vgg'):
@@ -309,15 +312,15 @@ def _each_epoch(mode, loader, model, criterion, optimizer=None, epoch=None):
         batch_time.update(time.time() - end)
         end = time.time()
         
-#        if i % print_freq == 0:  #服务器跑不需要print这个，碍事
-#            print('Epoch: [{0}][{1}/{2}]\t'
-#                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-#                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-#                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-#                'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-#                'Prec@3 {top3.val:.3f} ({top3.avg:.3f})'.format(
-#                epoch, i, len(loader), batch_time=batch_time,
-#                data_time=data_time, loss=losses, top1=top1, top3=top3))
+        if if_debug and i % print_freq == 0:  #服务器跑不需要print这个，碍事
+            print('Epoch: [{0}][{1}/{2}]\t'
+                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                'Prec@3 {top3.val:.3f} ({top3.avg:.3f})'.format(
+                epoch, i, len(loader), batch_time=batch_time,
+                data_time=data_time, loss=losses, top1=top1, top3=top3))
 
     if mode == 'train':
         index = epoch
