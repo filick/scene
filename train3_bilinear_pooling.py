@@ -11,7 +11,10 @@ stn
     http://pytorch.org/tutorials/intermediate/spatial_transformer_tutorial.html
     
 Todo:
-周六，日： 用val训练？添加places数据？
+周六，日： 用val训练？添加places数据？convert更好的caffe model?
+    https://github.com/lishen-shirley/Places2-CNNs
+    https://github.com/marvis/pytorch-caffe-darknet-convert
+    
 
 再看看各种场景分类的冠军方案和论文
 
