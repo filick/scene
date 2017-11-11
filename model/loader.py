@@ -85,7 +85,7 @@ def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=F
             return model
         elif arch == 'resnet152':
             if SENet == True:
-                model = give_se_resnet152_places365(reduction=16, se_stage=2)
+                model = give_se_resnet152_places365(16, se_stage)
                 #use pretrained weights from places 365
                 original = resnet152_places365
                 original.load_state_dict(torch.load(os.path.join(model_file_root, 'resnet152_places365.pth')))

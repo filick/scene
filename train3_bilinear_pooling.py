@@ -5,10 +5,13 @@ bilinear: 注意对称（kernel pooling）和不对称（理想？两个cnn学�
 SE-net
 confusion (label smoothing)
 
-Todo:
 冻结BN, BN_layer.eval()
-周六： Residual Attention Networks 或 stn (先给places 152模型加！！！)
-周日： 用val训练？添加places数据？
+stn
+    http://blog.csdn.net/xbinworld/article/details/69049680
+    http://pytorch.org/tutorials/intermediate/spatial_transformer_tutorial.html
+    
+Todo:
+周六，日： 用val训练？添加places数据？
 
 再看看各种场景分类的冠军方案和论文
 
@@ -40,7 +43,7 @@ evaluate = False
 checkpoint_filename = arch + '_' + pretrained
 try_resume = False
 print_freq = 10
-if_debug = True
+if_debug = False
 start_epoch = 0
 use_gpu = torch.cuda.is_available()
 class_aware = True
@@ -51,18 +54,18 @@ pool_type = 'avg_pool'
 bilinear = {'use':False,'dim':16384}  #没有放进hyper_board
 stage = 2 #注意，1只训练新加的fc层，改为2后要用try_resume = True
 SENet = True
-se_stage = 1 #注意，1只训练新加的所有fc层，改为2后要用try_resume = True
-input_size = 64#[224, 256, 384, 480, 640] 
-train_scale = 64
-test_scale = 64
+se_stage = 2 #注意，1只训练新加的所有fc层，改为2后要用try_resume = True
+input_size = 352#[224, 256, 384, 480, 640] 
+train_scale = 352
+test_scale = 352
 train_transform = 'train2'
 lr_decay = 0.5
 
 # training parameters:
-BATCH_SIZE = 2
+BATCH_SIZE = 60
 INPUT_WORKERS = 8
 epochs = 100
-lr = 0.001  #0.01  0.001
+lr = 0.01  #0.01  0.001
 lr_min = 1e-6
 
 if_fc = False #是否先训练最后新加的层，目前的实现不对。
