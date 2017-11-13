@@ -154,19 +154,12 @@ class SPPLayer(nn.Module):
         bs, c, h, w = x.size()
         pooling_layers = []
         for level, pool_type in zip(self.levels, self.pool_type):
-            for i in range(level):
-                for j in range(level):
-                    hl = math.floor(i / level * h)
-                    hr = math.ceil((i + 1) / level * h)
-                    wl = math.floor(j / level * w)
-                    wr = math.ceil((j + 1) / level * w)
-                    part = x[:, :, hl:hr, wl:wr]
-                    if pool_type == 'max_pool':
-                        pooling_layers.append(F.max_pool2d(part, (hr - hl, wr - wl)))
-                    elif pool_type == 'avg_pool':
-                        pooling_layers.append(F.avg_pool2d(part, (hr - hl, wr - wl)))
-                    else:
-                        raise ValueError("Pool_type should be one in ('avg_pool', 'max_pool')")
+            if pool_type == 'max_pool':
+                pooling_layers.append(F.adaptive_max_pool2d(x, level))
+            elif pool_type == 'avg_pool':
+                pooling_layers.append(F.adaptive_avg_pool2d(x, level))
+            else:
+                raise ValueError("Pool_type should be one in ('avg_pool', 'max_pool')")
         x = torch.cat(pooling_layers, dim=-1)
         return x
 

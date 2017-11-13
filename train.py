@@ -1,11 +1,11 @@
 import os
 import time
 import shutil
-from scheme import *
 import torch.backends.cudnn as cudnn
 import torch.cuda
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from hyperboard import Agent
+from common import AverageMeter, accuracy
 
 
 def train(scheme, epochs, agent=None,
@@ -70,12 +70,12 @@ def train(scheme, epochs, agent=None,
             model.eval()
 
         end = time.time()
-        for i, (input, target) in enumerate(loader):
+        for i, (inp, target) in enumerate(loader):
             data_time.update(time.time() - end)
 
             if use_gpu:
                 target = target.cuda(async=True)
-            input_var = torch.autograd.Variable(input, volatile=(mode != 'train'))
+            input_var = torch.autograd.Variable(inp, volatile=(mode != 'train'))
             target_var = torch.autograd.Variable(target, volatile=(mode != 'train'))
 
             # compute output
@@ -84,9 +84,9 @@ def train(scheme, epochs, agent=None,
 
             # measure accuracy and record loss
             prec1, prec3 = accuracy(output.data, target, topk=(1, 3))
-            losses.update(loss.data[0], input.size(0))
-            top1.update(prec1[0], input.size(0))
-            top3.update(prec3[0], input.size(0))
+            losses.update(loss.data[0], inp.size(0))
+            top1.update(prec1[0], inp.size(0))
+            top3.update(prec3[0], inp.size(0))
 
             if mode == 'train':
                 optimizer.zero_grad()
@@ -118,9 +118,9 @@ def train(scheme, epochs, agent=None,
 
         if mode == 'validate':
             index = (epoch + 1) * len(train_loader) - 1
-            agent.append(names['valid_loss'], index, losses.val)
-            agent.append(names['valid_accu1'], index, top1.val)
-            agent.append(names['valid_accu3'], index, top3.val)
+            agent.append(names['validate_loss'], index, losses.avg)
+            agent.append(names['validate_acc1'], index, top1.avg)
+            agent.append(names['validate_acc3'], index, top3.avg)
 
         return losses, top1, top3
 
@@ -146,12 +146,12 @@ def train(scheme, epochs, agent=None,
         agent.append(names['lr'], epoch * len(train_loader), optimizer.param_groups[0]['lr'])
         # train for one epoch
         loss, top1, top3 = train_epoch(train_loader, epoch)
-        prec3 = top3.val
+        prec3 = top3.avg
 
         # evaluate on validation set
         if validate_loader is not None:
             loss, top1, top3 = validate_epoch(validate_loader, epoch)
-            prec3 = top3.val
+            prec3 = top3.avg
 
         if isinstance(lr_schedule, ReduceLROnPlateau):
             lr_schedule.step(loss.avg)
@@ -165,40 +165,6 @@ def train(scheme, epochs, agent=None,
             'state_dict': model.state_dict(),
             'best_prec3': best_prec3,
         }, is_best)
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-
-def accuracy(output, target, topk=(1,)):
-    """Computes the precision@k for the specified values of k"""
-    maxk = max(topk)
-    batch_size = target.size(0)
-
-    _, pred = output.topk(maxk, 1, True, True)
-    pred = pred.t()
-    correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-    res = []
-    for k in topk:
-        correct_k = correct[:k].view(-1).float().sum(0)
-        res.append(correct_k.mul_(100.0 / batch_size))
-    return res
 
 
 if __name__ == '__main__':

@@ -32,7 +32,7 @@ class BasicTrainScheme(TrainScheme):
 
 
     def init_loader(self):
-        batch_size = 128
+        batch_size = 80
         img_size = 224
         num_workers = 8
         use_gpu = torch.cuda.is_available()
@@ -151,5 +151,46 @@ class MultiScaleTrainScheme(BasicTrainScheme):
 
         lr_scheduler = lrs.ReduceLROnPlateau(opt, mode='min', factor=0.382, patience=2)
         self.hyperparams['lr_schedule'] = 'ReduceLROnPlateau, factor=0.382, patience=2'
+
+        return opt, lr_scheduler
+
+
+class TwoPhaseScheme(MultiScaleTrainScheme):
+
+
+    @property
+    def name(self):
+        self.model
+        return '_'.join([self.hyperparams['arch'], self.hyperparams['pretrained'], self.hyperparams['wrapper']])
+
+
+    def init_model(self):
+        arch = "resnet152"
+        pretrained = "places"
+
+        self.hyperparams['arch'] = arch
+        self.hyperparams['pretrained'] = pretrained
+
+        model = load_model(arch, pretrained, wrapper=SPPWrapper(spp_layer=SPPLayer([2,])), use_gpu=torch.cuda.is_available())
+        self.hyperparams['wrapper'] = 'sppnet2s'
+
+        return model
+
+
+    def init_optimizer(self):
+        lr = 0.01
+        momentum = 0.9
+        weight_decay= 0
+
+        self.hyperparams['optimizer'] = 'SGD'
+        self.hyperparams['lr'] = lr
+        self.hyperparams['momentum'] = momentum
+        self.hyperparams['weight_decay'] = weight_decay
+
+        opt = optim.SGD(self.model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum, nesterov=True)
+
+        # lr_scheduler = lrs.ReduceLROnPlateau(opt, mode='min', factor=0.382, patience=2)
+        lr_scheduler = lrs.LambdaLR(opt, lambda epoch: 0.5 ** (epoch // 5))
+        self.hyperparams['lr_schedule'] = 'divided by 5 every 5 epoches'
 
         return opt, lr_scheduler

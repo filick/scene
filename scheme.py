@@ -17,11 +17,6 @@ class TrainScheme(object):
 
 
     @property
-    def name(self):
-        raise NotImplementedError("name")
-
-
-    @property
     def model(self):
         if self._model:
             return self._model
@@ -75,6 +70,10 @@ class TrainScheme(object):
         return self._lrschedule
 
 
+    @property
+    def name(self):
+        raise NotImplementedError("name")
+
     def init_model(self):
         raise NotImplementedError("model")
 
@@ -86,3 +85,16 @@ class TrainScheme(object):
 
     def init_optimizer(self):
         raise NotImplementedError("optimizer")
+
+
+class ValidateScheme(object):
+
+
+    def __init__(self, train_scheme):
+        self.model = train_scheme.model
+        self.name = train_scheme.name
+        self.loader = train_scheme.validate_loader
+
+
+    def handler(self, model, input_var):
+        return model(input_var)
