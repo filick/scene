@@ -155,9 +155,9 @@ class SPPLayer(nn.Module):
         pooling_layers = []
         for level, pool_type in zip(self.levels, self.pool_type):
             if pool_type == 'max_pool':
-                pooling_layers.append(F.adaptive_max_pool2d(x, level))
+                pooling_layers.append(F.adaptive_max_pool2d(x, level).view(bs, c, -1))
             elif pool_type == 'avg_pool':
-                pooling_layers.append(F.adaptive_avg_pool2d(x, level))
+                pooling_layers.append(F.adaptive_avg_pool2d(x, level).view(bs, c, -1))
             else:
                 raise ValueError("Pool_type should be one in ('avg_pool', 'max_pool')")
         x = torch.cat(pooling_layers, dim=-1)

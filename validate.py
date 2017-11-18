@@ -53,4 +53,4 @@ if __name__ == '__main__':
     from basic import BasicTrainScheme, MultiScaleTrainScheme
     from scheme import ValidateScheme
 
-    validate(ValidateScheme(MultiScaleTrainScheme))
+    validate(ValidateScheme(MultiScaleTrainScheme()))

@@ -6,6 +6,7 @@ import torch.cuda
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from hyperboard import Agent
 from common import AverageMeter, accuracy
+from opt import AutoLRSGD
 
 
 def train(scheme, epochs, agent=None,
@@ -91,7 +92,12 @@ def train(scheme, epochs, agent=None,
             if mode == 'train':
                 optimizer.zero_grad()
                 loss.backward()
-                optimizer.step()
+                if isinstance(optimizer, AutoLRSGD):
+                    def closure():
+                        return loss.data
+                    optimizer.step(closure)
+                else:
+                    optimizer.step()
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -169,7 +175,7 @@ def train(scheme, epochs, agent=None,
 
 if __name__ == '__main__':
     from basic import BasicTrainScheme, MultiScaleTrainScheme
-    trainscheme = MultiScaleTrainScheme()
+    trainscheme = BasicTrainScheme()
     agent = Agent()
     train(trainscheme, epochs=100, agent=agent,
           try_resume=True, print_freq=20, 
