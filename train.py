@@ -174,8 +174,8 @@ def train(scheme, epochs, agent=None,
 
 
 if __name__ == '__main__':
-    from basic import BasicTrainScheme, MultiScaleTrainScheme
-    trainscheme = BasicTrainScheme()
+    from basic import *
+    trainscheme = TryAutoSGDScheme()
     agent = Agent()
     train(trainscheme, epochs=100, agent=agent,
           try_resume=True, print_freq=20, 

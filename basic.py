@@ -9,6 +9,7 @@ from common import *
 import torch.nn as nn
 from torch import optim
 import torch.optim.lr_scheduler as lrs
+from opt import AutoLRSGD
 
 
 class BasicTrainScheme(TrainScheme):
@@ -155,19 +156,30 @@ class MultiScaleTrainScheme(BasicTrainScheme):
         return opt, lr_scheduler
 
 
-'''
-class TencropValidate(ValidateScheme):
+class TryAutoSGDScheme(BasicTrainScheme):
 
 
-    def __init__(self, train_scheme):
-        super(TencropValidate, self).__init__(train_scheme)
-        validation_set = data.ChallengerSceneFolder(data.VALIDATION_ROOT, default_validate_transform(set(multi_imgsizes)))
-        sampler = sample.WithSizeSampler(validation_set)
-        grouping = sample.group_by_ratio(set(multi_imgsizes))
-        batch_sampler = sample.GroupingBatchSampler(sampler, batch_size, grouping)
-        validation_loader = torch.utils.data.DataLoader(
-                        validation_set,
-                        batch_sampler=batch_sampler,
-                        num_workers=num_workers, pin_memory=use_gpu)
-        return train_loader, validation_loader
-'''
+    @property
+    def name(self):
+        self.model
+        return super(TryAutoSGDScheme, self).name + '_autolr'
+
+
+    def init_optimizer(self):
+        max_lr = 0.01
+        strength = 0.1
+        weight_decay= 0
+        ideal_loss = 0
+
+        self.hyperparams['optimizer'] = 'AutoLRSGD'
+        self.hyperparams['max_lr'] = max_lr
+        self.hyperparams['strength'] = strength
+        self.hyperparams['weight_decay'] = weight_decay
+        self.hyperparams['ideal_loss'] = ideal_loss
+
+        opt = AutoLRSGD(self.model.parameters(), max_lr=max_lr, weight_decay=weight_decay, 
+                        strength=strength, ideal_loss=ideal_loss)
+
+        self.hyperparams['lr_schedule'] = 'None'
+
+        return opt, None
