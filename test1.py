@@ -1,5 +1,8 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 '''
-256: 95.295
+ *Epoch:[0] Prec@1 99.384 Prec@3 100.000 Loss 0.5274
 '''
 
 import os
@@ -13,55 +16,64 @@ import json
 from model import load_model
 from config import data_transforms
 import pickle
+import csv
+from params import *
+import torchvision.datasets as td
 
 
-
-arch = 'resnet152'
-pretrained = 'places'
-phases = ['test','val']
-use_gpu = torch.cuda.is_available()
-batch_size = 128
+phases = ['val']
+batch_size = BATCH_SIZE
 INPUT_WORKERS = 8
+
+if phases[0] == 'test_A':
+    test_root = 'data/test_A'
+elif phases[0] == 'test_B':
+    test_root = 'data/test_B'
+elif phases[0] == 'val':
+    test_root = 'data/validation_folder_full'
+    
+
+use_gpu = torch.cuda.is_available()
 checkpoint_filename = arch + '_' + pretrained
 best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar' #tar
-input_size = 256 #[224, 256, 384, 480, 640] 
-train_scale = 256
-test_scale = 256
-AdaptiveAvgPool = True
 
 
-model_conv = load_model(arch, pretrained, use_gpu=use_gpu,AdaptiveAvgPool=AdaptiveAvgPool)
+model_conv = load_model(arch, pretrained, use_gpu=use_gpu, num_classes=30,  AdaptiveAvgPool=AdaptiveAvgPool, SPP=SPP, num_levels=num_levels, pool_type=pool_type, bilinear=bilinear, stage=stage, SENet=SENet,se_stage=se_stage,se_layers=se_layers)
 for param in model_conv.parameters():
     param.requires_grad = False #节省显存
 
 best_checkpoint = torch.load(best_check)
-if use_gpu:
-    if arch.lower().startswith('alexnet') or arch.lower().startswith('vgg'):
-        model_conv.features = nn.DataParallel(model_conv.features)
-        model_conv.cuda()
-        model_conv.load_state_dict(best_checkpoint['state_dict']) 
-    else:
-        model_conv = nn.DataParallel(model_conv).cuda()
-        model_conv.load_state_dict(best_checkpoint['state_dict']) 
+#if use_gpu:
+if arch.lower().startswith('alexnet') or arch.lower().startswith('vgg'):
+    model_conv.features = nn.DataParallel(model_conv.features)
+    model_conv.cuda()
+    model_conv.load_state_dict(best_checkpoint['state_dict']) 
+else:
+    model_conv = nn.DataParallel(model_conv).cuda()
+    model_conv.load_state_dict(best_checkpoint['state_dict']) 
 
 
-
-with open('data/test/scene_test_annotations.json', 'r') as f: #label文件, 测试的是我自己生成的
+    
+with open(test_root+'/pig_test_annotations.json', 'r') as f: #label文件, 测试的是我自己生成的
     label_raw_test = json.load(f)
-with open('data/validation/scene_validation_annotations_20170908.json', 'r') as f: #label文件
-    label_raw_val = json.load(f)
+    
+def write_to_csv(aug_softmax): #aug_softmax[img_name_raw[item]] = temp[item,:]
+    a = ['1','10', '11','12','13','14', '15', '16', '17', '18','19', '2', '20', '21', '22','23', 
+     '24', '25', '26', '27', '28', '29', '3', '30', '4', '5', '6', '7', '8','9']
+    with open('result/'+ phases[0] +'_1.csv', 'w', encoding='utf-8') as csvfile:
+        spamwriter = csv.writer(csvfile,dialect='excel')
+        for item in aug_softmax.keys():
+            the_sum = sum(aug_softmax[item])
+            for c in range(0,30):
+                if phases[0] != 'val':
+                    spamwriter.writerow([int(item.split('.')[0]), c+1, aug_softmax[item][a.index(str(c+1))]/the_sum])
+                else:
+                    spamwriter.writerow([item, c+1, aug_softmax[item][a.index(str(c+1))]/the_sum])
 
 
 class SceneDataset(Dataset):
 
     def __init__(self, json_labels, root_dir, transform=None):
-        """
-        Args:
-            json_labesl (list):read from official json file.
-            root_dir (string): Directory with all the images.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
-        """
         self.label_raw = json_labels
         self.root_dir = root_dir
         self.transform = transform
@@ -70,30 +82,34 @@ class SceneDataset(Dataset):
         return len(self.label_raw)
 
     def __getitem__(self, idx):
+#        if phases[0] == 'val':
+#            img_name = self.root_dir+ '/' + str(self.label_raw[idx]['label_id']+1) + '/'+ self.label_raw[idx]['image_id']
+#        else:
         img_name = os.path.join(self.root_dir, self.label_raw[idx]['image_id'])
         img_name_raw = self.label_raw[idx]['image_id']
         image = Image.open(img_name)
-        label = int(self.label_raw[idx]['label_id'])
+        label = self.label_raw[idx]['label_id']
 
         if self.transform:
             image = self.transform(image)
-
+#        print(img_name)
+#        print(img_name_raw)
         return image, label, img_name_raw
 
 
 transformed_dataset_test = SceneDataset(json_labels=label_raw_test,
-                                    root_dir='/home/member/fuwang/projects/scene/data/ai_challenger_scene_test_a_20170922/scene_test_a_images_20170922',
+                                        root_dir=test_root,
                                            transform=data_transforms('test',input_size, train_scale, test_scale)
-                                           )      
-transformed_dataset_val = SceneDataset(json_labels=label_raw_val,
-                                    root_dir='/home/member/fuwang/projects/scene/data/ai_challenger_scene_validation_20170908/scene_validation_images_20170908',
-                                           transform=data_transforms('validation',input_size, train_scale, test_scale)
-                                           )         
-dataloader = {'test':DataLoader(transformed_dataset_test, batch_size=batch_size,shuffle=False, num_workers=INPUT_WORKERS),
-             'val':DataLoader(transformed_dataset_val, batch_size=batch_size,shuffle=False, num_workers=INPUT_WORKERS)
+                                           )           
+dataloader = {phases[0]:DataLoader(transformed_dataset_test, batch_size=batch_size,shuffle=False, num_workers=INPUT_WORKERS)
              }
-dataset_sizes = {'test': len(label_raw_test), 'val':len(label_raw_val)}
-
+dataset_sizes = {phases[0]: len(label_raw_test)}
+#
+#VALIDATION_ROOT = 'data/validation_folder/'
+#val_loader = torch.utils.data.DataLoader(
+#            td.ImageFolder(VALIDATION_ROOT, data_transforms('validation',input_size, train_scale, test_scale)),
+#            batch_size=BATCH_SIZE, shuffle=False,
+#            num_workers=INPUT_WORKERS), pin_memory=use_gpu)
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -155,12 +171,11 @@ def test_model (model, criterion):
 
     for phase in phases:
         
-        model.train(False)  # Set model to evaluate mode
+        model.eval()  # Set model to evaluate mode
 
-        running_loss = 0.0
-        running_corrects = 0
         top1 = AverageMeter()
         top3 = AverageMeter()
+        loss1 = AverageMeter()
         results = []
         aug_softmax = {}
 
@@ -173,7 +188,8 @@ def test_model (model, criterion):
                 print('step %d vs %d in %.0f s' % (mystep, total_steps, duration))
 
             inputs, labels, img_name_raw= data
-            #print(img_name_raw) #('ed531a55d4887dc287119c3f6ebf7eb162bed6cf.jpg', '520036616eb2594b6e9d41b0415deea607e8de12.jpg')
+            #inputs, labels = data
+            #img_name_raw = '0'
 
             # wrap them in Variable
             if use_gpu:
@@ -192,30 +208,33 @@ def test_model (model, criterion):
             _, preds = torch.max(outputs.data, 1)
             loss = criterion(outputs, labels)
 
-            # statistics
-            running_loss += loss.data[0]
-            running_corrects += torch.sum(preds == labels.data)
-
+#            print(outputs.size())
+#            print(temp.shape)
+#            print(outputs[0,:])
+#            print(img_name_raw[0]) #('ed531a55d4887dc287119c3f6ebf7eb162bed6cf.jpg', '520036616eb2594b6e9d41b0415deea607e8de12.jpg')
+#            print(labels[0])
+#            print(preds[0])
+            
+#            # statistics
             res, pred_list = accuracy(outputs.data, labels.data, topk=(1, 3))
             prec1 = res[0]
             prec3 = res[1]
-            top1.update(prec1[0], inputs.data.size(0))
-            top3.update(prec3[0], inputs.data.size(0))
+            top1.update(prec1[0], inputs.size(0))
+            top3.update(prec3[0], inputs.size(0))
+            loss1.update(loss.data[0], inputs.size(0))
             
             results += batch_to_list_of_dicts(pred_list, img_name_raw)
 
-        epoch_loss = running_loss / dataset_sizes[phase]
-        epoch_acc = running_corrects / dataset_sizes[phase]
 
-        print('{} Loss: {:.6f} Acc: {:.6f}'.format(
-            phase, epoch_loss, epoch_acc))
-        print(' * Prec@1 {top1.avg:.6f} Prec@3 {top3.avg:.6f}'.format(top1=top1, top3=top3))
+        print(' * Prec@1 {top1.avg:.6f} Prec@3 {top3.avg:.6f} Loss@1 {loss1.avg:.6f}'.format(top1=top1, top3=top3, loss1=loss1))
         
-        with open(('submit/%s_submit1_%s.json'%(checkpoint_filename, phase)), 'w') as f:
+        with open(('result/%s_submit1_%s.json'%(checkpoint_filename, phase)), 'w') as f:
             json.dump(results, f)
         
-        with open(('submit/%s_softmax1_%s.txt'%(checkpoint_filename, phase)), 'wb') as handle:
+        with open(('result/%s_softmax1_%s.txt'%(checkpoint_filename, phase)), 'wb') as handle:
             pickle.dump(aug_softmax, handle)
+        
+        write_to_csv(aug_softmax)
     return 0
 
 
@@ -225,6 +244,6 @@ criterion = nn.CrossEntropyLoss()
 
 ######################################################################
 # val and test
-total_steps = 1.0  * (len(label_raw_test) + len(label_raw_val)) / batch_size
+total_steps = 1.0  * len(label_raw_test) / batch_size
 print(total_steps)
 test_model(model_conv, criterion)
