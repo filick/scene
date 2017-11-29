@@ -36,7 +36,7 @@ import torchvision.models
 from .spp_layer import SPPLayer
 from .compact_bilinear_pooling import CompactBilinearPooling
 from .se_resnet152_places365 import give_se_resnet152_places365
-
+from .multi_path import Two_path
 
 support_models = {
     'places': ('alexnet', 'densenet161', 'resnet18', 'resnet50', 'preact_resnet50', 'resnet152'),
@@ -48,7 +48,16 @@ support_models = {
 model_file_root = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'places365')
 
 
-def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False, SPP=False, num_levels=3, pool_type='avg_pool', bilinear={'use':False,'dim':16384}, stage=2, SENet=False, se_stage=2):
+def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False, SPP=False, num_levels=3, pool_type='avg_pool', bilinear={'use':False,'dim':16384}, stage=2, SENet=False, se_stage=2, use_multi_path = False):
+    if use_multi_path:
+        model = Two_path(num_classes)
+        if stage == 1:
+            for param in model.path1.parameters():
+                param.requires_grad = False
+            for param in model.path2.parameters():
+                param.requires_grad = False
+        return 
+    
     num_mul = sum([(2**i)**2 for i in range(num_levels)])
     if SPP and AdaptiveAvgPool:
         raise ValueError("Set AdaptiveAvgPool = False when using SPP = True")
