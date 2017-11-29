@@ -50,13 +50,7 @@ model_file_root = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'pl
 
 def load_model(arch, pretrained, use_gpu=True, num_classes=80, AdaptiveAvgPool=False, SPP=False, num_levels=3, pool_type='avg_pool', bilinear={'use':False,'dim':16384}, stage=2, SENet=False, se_stage=2, use_multi_path = False):
     if use_multi_path:
-        model = Two_path(num_classes)
-        if stage == 1:
-            for param in model.path1.parameters():
-                param.requires_grad = False
-            for param in model.path2.parameters():
-                param.requires_grad = False
-        return 
+        return Two_path(num_classes)    
     
     num_mul = sum([(2**i)**2 for i in range(num_levels)])
     if SPP and AdaptiveAvgPool:
