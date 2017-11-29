@@ -36,7 +36,7 @@ train_transform = 'train2'
 lr_decay = 0.5
 
 # training parameters:
-BATCH_SIZE = 80
+BATCH_SIZE = 35
 INPUT_WORKERS = 8
 epochs = 100
 lr = 0.01 
@@ -93,6 +93,7 @@ for m in monitoring:
     name = agent.register(hyperparameters, metric)
     names[m] = name
 
+checkpoint_filename = 'two_path'
 latest_check = 'checkpoint/' + checkpoint_filename + '_latest.pth.tar'
 best_check = 'checkpoint/' + checkpoint_filename + '_best.pth.tar'
 
