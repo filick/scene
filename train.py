@@ -172,7 +172,10 @@ def _each_epoch(mode, loader, model, criterion, optimizer=None, epoch=None):
 
         # compute output
         output = model(input_var)
-        loss = criterion(output, target_var)
+        if isinstance(output, tuple):
+            loss = sum([criterion(o,target_var) for o in output])
+        else:
+            loss = criterion(output, target_var)
 
         # measure accuracy and record loss
         prec1, prec3 = accuracy(output.data, target, topk=(1, 3))
